@@ -17,6 +17,9 @@
     "url": "https://github.com/automatous-io/brightdrop-spotter-extension/issues"
   },
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "test": "node scripts/check-manifest.mjs && node scripts/test-vin.mjs && node scripts/test-batch.mjs && node scripts/test-sticker.mjs",
     "icons": "node scripts/build-icons.mjs"
