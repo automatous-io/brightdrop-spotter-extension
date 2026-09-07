@@ -16,6 +16,13 @@ limitations under the License.
 
 # BrightDrop Spotter
 
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Release](https://img.shields.io/github/v/release/automatous-io/brightdrop-spotter-extension)](../../releases/latest)
+![Last Commit](https://img.shields.io/github/last-commit/automatous-io/brightdrop-spotter-extension)
+[![Downloads](https://img.shields.io/github/downloads/automatous-io/brightdrop-spotter-extension/total)](../../releases)
+[![Stars](https://img.shields.io/github/stars/automatous-io/brightdrop-spotter-extension?style=social)](../../stargazers)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy_Me_a_Coffee-support-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/automatous.io)
+
 Spot the good ones. Verified by VIN.
 
 A Chrome extension for anyone shopping for a BrightDrop 400 or 600 electric van. It badges every
@@ -26,6 +33,8 @@ Made by [automatous.io](https://github.com/automatous-io). Not affiliated with G
 BrightDrop.
 
 ![Badges on a listing page, with the hover card open on a Max Range van](docs/screenshots/hero.png)
+
+*Screenshots use example VINs and an example dealer. They decode the way real ones do but belong to no actual van.*
 
 ## Why
 
@@ -114,6 +123,27 @@ Run the tests with `npm test`. Regenerate the icons with `npm run icons` after `
 
 Range and weight figures come from GM's 2025 and 2026 order guides and GM's published 2024 figures.
 Verify anything that matters against the window sticker and a pre-purchase inspection.
+
+## About
+
+This came out of shopping for a BrightDrop and getting tired of listings that never say which
+battery is in the van. The answer was in the VIN the whole time, filed with NHTSA by GM, along with
+a window sticker that lists every option on the build. This extension just reads them for you.
+
+If it saved you a phone call to a dealer, consider leaving a ⭐ on the repo. It helps the project
+show up in GitHub search and signals to other BrightDrop shoppers that this exists and works. If
+you would like to support the work directly, you can [buy me a coffee](https://buymeacoffee.com/automatous.io).
+
+## Other projects from Automatous
+
+Other open source, local-first projects from Automatous.
+
+| Project | What it is |
+|---|---|
+| [Shelly Gen4 Matter over Thread](https://github.com/automatous-io/shelly-1-gen4-matter-thread) | The first third-party open source Matter over Thread firmware for Shelly Gen4 devices. Works natively with Apple Home, Google Home, Alexa and Home Assistant. No Shelly app, no cloud, no WiFi. |
+| [Shelly Gen4 ESPHome](https://github.com/automatous-io/shelly-gen4-esphome) | ESPHome for Shelly Gen4 devices, installed through the stock web UI. |
+| [XIAO Soil Moisture Sensor](https://github.com/automatous-io/xiao-soil-moisture-sensor-matter-thread) | Open source Matter over Thread firmware for the Seeed Studio XIAO Soil Moisture Sensor. A Matter soil sensor, native in Home Assistant. |
+| [T1N Smart Lock](https://github.com/automatous-io/t1n-smart-lock) | Open source Matter over Thread smart lock that integrates with the factory central locking on a 2005 Dodge Sprinter (T1N). |
 
 ## Credits
 

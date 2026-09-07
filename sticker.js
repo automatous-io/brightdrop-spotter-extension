@@ -93,7 +93,7 @@ export async function extractPdfText(buffer) {
     try { body = latin1.decode(await inflate(bytes.subarray(start, end))); }
     catch { body = raw.slice(start, end); }
     for (const s of body.matchAll(/\(((?:\\.|[^\\)])*)\)/g)) parts.push(unescapePdf(s[1]));
-    re.lastIndex = end;
+    re.lastIndex = end + 'endstream'.length;
   }
   return parts.join('');
 }

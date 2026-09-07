@@ -102,7 +102,7 @@ function resultHtml(p) {
     <div class="head">${VAN}
       <div>${p.eyebrow ? `<div class="eyebrow">${esc(p.eyebrow)}</div>` : ''}<div class="title">${esc(p.title)}</div></div>
       ${p.pillText ? `<span class="pill${p.isMax ? ' pill--max' : p.isExt ? ' pill--ext' : ''}">${esc(p.pillText)}</span>` : ''}
-      <button type="button" class="ib" data-sticker="${esc(p.vin)}" title="Window sticker details" aria-label="Show window sticker details: options, price, color and first dealer" aria-expanded="false">${DOC}</button>
+      ${p.sticker ? `<button type="button" class="ib" data-sticker="${esc(p.vin)}" title="Window sticker details" aria-label="Show window sticker details: options, price, color and first dealer" aria-expanded="false">${DOC}</button>` : ''}
       <a class="ib page-link" hidden target="_blank" rel="noopener noreferrer">${LINK}</a>
     </div>
     <div class="hero${p.isMax ? ' is-max' : p.isExt ? ' is-ext' : ''}">
@@ -121,7 +121,7 @@ function resultHtml(p) {
     <div class="sheet" hidden></div>
     <div class="source">
       <button type="button" class="copy" data-copy="${esc(p.vin)}" aria-label="Copy VIN">${COPY}<code>${esc(p.vin)}</code></button>
-      <a class="sticker" href="${esc(p.sticker)}" target="_blank" rel="noopener noreferrer">window sticker ${ARROW}</a>
+      ${p.sticker ? `<a class="sticker" href="${esc(p.sticker)}" target="_blank" rel="noopener noreferrer">window sticker ${ARROW}</a>` : ''}
     </div>
   </section>`;
 }
@@ -161,7 +161,7 @@ function recentHtml(recent) {
   if (!recent?.length) return '';
   const rows = recent.map((r) => {
     const tone = r.pack === 'Max Range' ? 'max' : r.pack === 'Extended Range' ? 'ext' : null;
-    const sub = [r.series, r.drive].filter(Boolean).join(' · ');
+    const sub = [r.year, r.series, r.drive].filter(Boolean).join(' · ');
     let host = '';
     try { if (r.url) host = new URL(r.url).hostname.replace(/^www\./, ''); } catch { /* no link */ }
     const open = r.url
@@ -198,7 +198,8 @@ function setState(state, n) {
 }
 
 async function run() {
-  const vin = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  // Separators are allowed in what gets pasted; only the 17 VIN characters are kept.
+  const vin = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, VIN_LENGTH);
   if (input.value !== vin) input.value = vin;
 
   if (vin.length < VIN_LENGTH) {

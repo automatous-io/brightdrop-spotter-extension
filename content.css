@@ -55,7 +55,6 @@
 }
 .bd-vin-badge--ext:hover,
 .bd-vin-badge--ext[data-bd-open] { border-color: #e0b57a; }
-.bd-vin-badge--muted { background: transparent; color: #8b949e; border-color: #e3e7ec; font-weight: 500; cursor: help; }
 @media (prefers-color-scheme: dark) {
   .bd-vin-badge { background: #1b222c; color: #8b949e; border-color: #252c36; }
   .bd-vin-badge:hover, .bd-vin-badge[data-bd-open] { border-color: #38414d; }
@@ -63,5 +62,4 @@
   .bd-vin-badge--max:hover, .bd-vin-badge--max[data-bd-open] { border-color: #2c7a5f; }
   .bd-vin-badge--ext { background: #2b2012; color: #e3a35a; border-color: #5a4020; }
   .bd-vin-badge--ext:hover, .bd-vin-badge--ext[data-bd-open] { border-color: #8a6430; }
-  .bd-vin-badge--muted { background: transparent; color: #6e7681; border-color: #252c36; }
-}
+  }

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "BrightDrop Spotter",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Spots which BrightDrop vans have the Max Range battery as you browse listings. Decodes VINs via NHTSA data. Not affiliated with GM.",
   "homepage_url": "https://github.com/automatous-io/brightdrop-spotter-extension",
   "permissions": [

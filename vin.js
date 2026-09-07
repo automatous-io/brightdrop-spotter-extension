@@ -45,9 +45,26 @@ export const KNOWN_WMIS = {
   '2GC': { manufacturer: 'General Motors (Chevrolet Truck)', country: 'Canada', vehicleType: 'Truck', plant: 'Ingersoll, Ontario' },
 };
 
-/** vPIC row -> is this actually a BrightDrop? 2024 rows say Make BRIGHTDROP / Model Zevo; 2025+ say CHEVROLET / BrightDrop. */
+/**
+ * Structural BrightDrop test, no network. Every confirmed van has J at position 5,
+ * the model digit (2 or 3) at 6 and T (H on 2023 builds) at 7. Silverados and
+ * Colorados share the 2GC prefix and fail all three, so they never reach vPIC.
+ */
+export function isBrightDropVin(vin) {
+  const v = String(vin);
+  return Boolean(KNOWN_WMIS[v.slice(0, 3)]) && v[4] === 'J' && '23'.includes(v[5]) && 'TH'.includes(v[6]);
+}
+
+/**
+ * vPIC row -> is this a BrightDrop? 2024 rows say Make BRIGHTDROP / Model Zevo; 2025+ say
+ * CHEVROLET / BrightDrop. Returns null when vPIC has no make or model yet, which is
+ * "unknown" rather than "no": a brand-new VIN can look like this for a few weeks.
+ */
 export function isBrightDropRow(r) {
-  return /brightdrop/i.test(`${r?.Make ?? ''} ${r?.Model ?? ''}`) || /^zevo$/i.test(r?.Model ?? '');
+  const make = r?.Make ?? '';
+  const model = r?.Model ?? '';
+  if (!make && !model) return null;
+  return /brightdrop/i.test(`${make} ${model}`) || /^zevo$/i.test(model);
 }
 
 const brandCase = (s) => (/^brightdrop$/i.test(s) ? 'BrightDrop' : String(s).charAt(0).toUpperCase() + String(s).slice(1).toLowerCase());
@@ -96,6 +113,7 @@ export const VDS_POSITIONS = {
       '6': { value: 'FWD · Standard Range', samples: 2, detail: 'XRM + ETC, 1 motor, 240 hp, 12 modules' },
       'Y': { value: 'AWD · Standard Range', samples: 5, detail: 'XRJ + ETC, 2 motors, 300 hp, 12 modules' },
       'Z': { value: 'AWD · Max Range', samples: 3, detail: 'XRJ + ETJ, 2 motors, 300 hp, 20 modules' },
+      'G': { value: 'AWD · Max Range', samples: 3, detail: '2023 coding (position 7 is H that year). XRJ + ETJ, 2 motors, 300 hp' },
       // No FWD Max Range code exists: GM offers ETJ with AWD only (2025 and 2026 order guides).
     },
   },
@@ -118,6 +136,9 @@ export function searchPattern({ model = '600', powertrain = 'Z' } = {}) {
 export function windowStickerUrl(vin) {
   return `https://cws.gm.com/vs-cws/vehshop/v2/vehicle/windowsticker?vin=${normalizeVin(vin)}&make=chevrolet`;
 }
+
+/** GM holds stickers from model year 2024 on. 2023 vans were sold by BrightDrop directly and have none. */
+export const hasWindowSticker = (modelYear) => modelYear == null || modelYear >= 2024;
 
 /** Decode positions 4-8 against VDS_POSITIONS. */
 export function decodeVds(vin) {
@@ -243,26 +264,26 @@ export const BATTERY_RPO = {
 
 // GM-estimated combined range in miles, by model year. GM split 2024 by series
 // and 2025 by drive type; 2026 is one figure per pack. Sources: GM 2025 and
-// 2026 order guides; 2024 from GM's revised figures as published June 2024.
+// 2026 order guides; 2024 from GM's revised figures as published June 2024;
+// 2023 from BrightDrop's launch announcement.
 export const RANGE_MI = {
+  2023: { ETJ: 250 },   // BrightDrop's launch figure for the Zevo 600; GM revised it for 2024
   2024: { ETC: { 400: 159, 600: 164 }, ETJ: 272 },
   2025: { ETC: { FWD: 177, AWD: 179 }, ETJ: 272 },
   2026: { ETC: 176, EWU: 204, ETJ: 285 },
 };
 const RANGE_YEARS = Object.keys(RANGE_MI).map(Number);
 
-/** Range for a pack on a given van. Years outside the table clamp to the nearest known year. */
+/** Range for a pack on a given van, or null when GM published no single figure for what we know. Years outside the table clamp to the nearest known year. */
 export function estimatedRange(batteryCode, { modelYear, series, driveType } = {}) {
   if (!batteryCode || !RANGE_YEARS.length) return null;
   const year = Math.min(Math.max(modelYear ?? RANGE_YEARS.at(-1), RANGE_YEARS[0]), RANGE_YEARS.at(-1));
   const entry = RANGE_MI[year]?.[batteryCode];
   if (entry == null) return null;
   if (typeof entry === 'number') return entry;
+  // GM split the figure by series or by drive that year; without the matching field there is no honest number.
   const key = entry[String(series)] !== undefined ? String(series) : String(driveType ?? '').toUpperCase().slice(0, 3);
-  const hit = entry[key];
-  if (hit !== undefined) return hit;
-  const all = Object.values(entry);
-  return all.length ? Math.min(...all) : null;
+  return entry[key] ?? null;
 }
 
 /** Motor unit codes seen in vPIC's EngineModel field. */
@@ -365,7 +386,7 @@ export async function decodeVinsBatch(vins, { fetchImpl = fetch } = {}) {
     if (out.has(vin) || queued.has(vin)) continue;
     const check = validateVin(vin);
     if (!check.ok) { out.set(vin, { vin, ok: false, error: check.errors[0] ?? 'invalid VIN' }); continue; }
-    if (!KNOWN_WMIS[vin.slice(0, 3)]) { out.set(vin, { vin, ok: false, error: 'not a BrightDrop' }); continue; }
+    if (!isBrightDropVin(vin)) { out.set(vin, { vin, ok: false, skip: true, error: 'Not a BrightDrop.' }); continue; }
     queued.add(vin);
   }
   const wanted = [...queued];
@@ -384,17 +405,24 @@ export async function decodeVinsBatch(vins, { fetchImpl = fetch } = {}) {
 
       for (const r of rows) {
         const vin = normalizeVin(r.VIN);
-        if (!isBrightDropRow(r)) {
-          // A 2GC VIN that vPIC says is some other Chevrolet truck. Cacheable and silent.
+        const isBd = isBrightDropRow(r);
+        if (isBd === null) {
+          // vPIC has no make or model for this VIN yet. Not cached, so it is retried next time.
+          out.set(vin, { vin, ok: false, error: 'NHTSA has no record for this VIN yet.' });
+          continue;
+        }
+        if (!isBd) {
           const what = [r.ModelYear, r.Make, r.Model].filter(Boolean).join(' ');
-          out.set(vin, { vin, ok: false, skip: true, error: what ? `Not a BrightDrop. NHTSA lists it as a ${what}.` : 'Not a BrightDrop.' });
+          out.set(vin, { vin, ok: false, skip: true, error: `Not a BrightDrop. NHTSA lists it as a ${what}.` });
           continue;
         }
         const van = { modelYear: r.ModelYear ? Number(r.ModelYear) : null, series: r.Series || null, driveType: r.DriveType ? r.DriveType.split('/')[0] : null };
         const pt = parsePowertrain(r.EngineModel, r.OtherEngineInfo, van);
         out.set(vin, {
           vin,
-          ok: r.ErrorCode === '0',
+          // vPIC flags minor issues (e.g. code 14, unused position) on rows that still carry the full build.
+          ok: r.ErrorCode === '0' || Boolean(pt.batteryCode || pt.motorCode),
+          errorText: r.ErrorCode === '0' ? null : (r.ErrorText || `vPIC error ${r.ErrorCode}`),
           series: van.series,
           ...vehicleName(r),
           model: [r.Make, r.Model, r.Series].filter(Boolean).join(' ') || null,
@@ -402,6 +430,7 @@ export async function decodeVinsBatch(vins, { fetchImpl = fetch } = {}) {
           driveType: van.driveType,
           gvwrClass: r.GVWR || null,
           local: decodeVin(vin).positional,
+          stickerUrl: hasWindowSticker(van.modelYear) ? windowStickerUrl(vin) : null,
           ...pt,
         });
       }
@@ -422,7 +451,7 @@ export function extractVins(text, { brightDropOnly = true } = {}) {
   for (const m of String(text).matchAll(/\b[A-HJ-NPR-Z0-9]{17}\b/gi)) {
     const vin = m[0].toUpperCase();
     if (!validateVin(vin).ok) continue;
-    if (brightDropOnly && !KNOWN_WMIS[vin.slice(0, 3)]) continue;
+    if (brightDropOnly && !isBrightDropVin(vin)) continue;
     found.add(vin);
   }
   return [...found];

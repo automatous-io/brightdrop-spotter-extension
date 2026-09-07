@@ -218,9 +218,12 @@ t('range follows the model year, and series or drive where GM split it', () => {
   assert.equal(estimatedRange('ETJ', { modelYear: 2024 }), 272);
   assert.equal(estimatedRange('ETJ', { modelYear: 2026 }), 285);
   assert.equal(estimatedRange('EWU', { modelYear: 2025 }), null, 'not offered before 2026');
-  assert.equal(estimatedRange('ETJ', { modelYear: 2023 }), 272, 'earlier years clamp to the first known');
+  assert.equal(estimatedRange('ETJ', { modelYear: 2023 }), 250, '2023 launch figure');
+  assert.equal(estimatedRange('ETJ', { modelYear: 2022 }), 250, 'earlier years clamp to the first known');
+  assert.equal(estimatedRange('ETC', { modelYear: 2023 }), null, 'no Standard figure published for 2023');
   assert.equal(estimatedRange('ETJ', { modelYear: 2030 }), 285, 'later years clamp to the last known');
-  assert.equal(estimatedRange('ETC', { modelYear: 2025 }), 177, 'unknown drive falls back to the lower figure');
+  assert.equal(estimatedRange('ETC', { modelYear: 2025 }), null, 'unknown drive: no figure rather than a guess');
+  assert.equal(estimatedRange('ETC', { modelYear: 2024 }), null, 'unknown series: no figure rather than a guess');
 });
 
 t('tells BrightDrop rows from other Chevrolet trucks', () => {
@@ -233,6 +236,15 @@ t('one display-name rule across vPIC naming eras', () => {
   assert.deepEqual(vehicleName({ Make: 'BRIGHTDROP', Model: 'Zevo', Series: '600' }), { make: 'BrightDrop', name: 'Zevo 600' });
   assert.deepEqual(vehicleName({ Make: 'CHEVROLET', Model: 'BrightDrop', Series: '400' }), { make: 'Chevrolet', name: 'BrightDrop 400' });
   assert.deepEqual(vehicleName({}), { make: null, name: null });
+});
+
+// 2023 vans: real VINs from listings, decoded by vPIC as BRIGHTDROP / Zevo / 600, XRJ + ETJ.
+t('decodes the 2023 position 8 coding', () => {
+  const d = decodeVin('2G5ZJ3HG4P9101315');
+  assert.ok(d.ok);
+  assert.equal(d.structural.modelYear, 2023);
+  assert.equal(d.positional.model.value, 'BrightDrop 600');
+  assert.equal(d.positional.powertrain.value, 'AWD · Max Range');
 });
 
 t('accepts the 2026 2GC manufacturer code', () => {

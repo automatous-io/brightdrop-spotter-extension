@@ -94,19 +94,37 @@ async function deflate(str) {
   let at = 0; for (const c of chunks) { out.set(c, at); at += c.length; }
   return out;
 }
-async function fakePdf(strings) {
-  const content = strings.map((s) => `(${s.replace(/([()\\])/g, '\\$1')}) Tj`).join('\n');
-  const body = await deflate(content);
-  const head = new TextEncoder().encode('%PDF-1.4\n1 0 obj << /Length ' + body.length + ' /Filter /FlateDecode >>\nstream\n');
-  const tail = new TextEncoder().encode('\nendstream\nendobj\n%%EOF');
-  const out = new Uint8Array(head.length + body.length + tail.length);
-  out.set(head, 0); out.set(body, head.length); out.set(tail, head.length + body.length);
+/** One deflated content stream per group of strings, so multi-stream layouts are exercised. */
+async function fakePdf(...streams) {
+  const parts = [new TextEncoder().encode('%PDF-1.4\n')];
+  let n = 1;
+  for (const strings of streams) {
+    const content = strings.map((s) => `(${s.replace(/([()\\])/g, '\\$1')}) Tj`).join('\n');
+    const body = await deflate(content);
+    parts.push(new TextEncoder().encode(`${n} 0 obj << /Length ${body.length} /Filter /FlateDecode >>\nstream\n`), body, new TextEncoder().encode('\nendstream\nendobj\n'));
+    n += 1;
+  }
+  parts.push(new TextEncoder().encode('%%EOF'));
+  const out = new Uint8Array(parts.reduce((a, c) => a + c.length, 0));
+  let at = 0; for (const c of parts) { out.set(c, at); at += c.length; }
   return out.buffer;
 }
 
 await ta('extracts literal strings from a deflated content stream', async () => {
   const pdf = await fakePdf(['Hello ', 'sticker (with parens)']);
   assert.equal(await extractPdfText(pdf), 'Hello sticker (with parens)');
+});
+
+await ta('every stream is read, not just the first', async () => {
+  const pdf = await fakePdf(['first stream '], ['second stream '], ['third']);
+  assert.equal(await extractPdfText(pdf), 'first stream second stream third');
+});
+
+await ta('the JSON block in a later stream is found', async () => {
+  const pdf = await fakePdf([TEXT.slice(0, 200)], [TEXT.slice(200)]);
+  const r = await readSticker(pdf);
+  assert.equal(r.vin, '2G58J2TZ7S9102966');
+  assert.equal(r.totalPrice, 81035);
 });
 
 await ta('end to end: PDF bytes -> facts and rows', async () => {

@@ -21,7 +21,10 @@
 // one shared element in a shadow root, so host CSS cannot reach it.
 
 const BADGE_CLASS = 'bd-vin-badge';
-const MARK_ATTR = 'data-bd-vin-done';
+/** VINs already badged, per text node. Failures are not recorded, so the next scan retries them. */
+const done = new WeakMap();
+const isDone = (node, vin) => done.get(node)?.has(vin) ?? false;
+const markDone = (node, vin) => { if (!done.has(node)) done.set(node, new Set()); done.get(node).add(vin); };
 const VIN_RE = /\b[A-HJ-NPR-Z0-9]{17}\b/g;
 
 const TRANSLIT = { A:1,B:2,C:3,D:4,E:5,F:6,G:7,H:8,J:1,K:2,L:3,M:4,N:5,P:7,R:9,S:2,T:3,U:4,V:5,W:6,X:7,Y:8,Z:9 };
@@ -29,7 +32,8 @@ const WEIGHTS = [8,7,6,5,4,3,2,10,0,9,8,7,6,5,4,3,2];
 
 // Check-digit filter so junk never reaches the service worker. Mirrors vin.js.
 function looksLikeBrightDropVin(vin) {
-  if (vin.length !== 17 || !/^2G[5C]/.test(vin)) return false;
+  if (vin.length !== 17 || !/^2G[5C]J?/.test(vin)) return false;
+  if (vin[4] !== 'J' || !'23'.includes(vin[5]) || !'TH'.includes(vin[6])) return false;
   let sum = 0;
   for (let i = 0; i < 17; i += 1) {
     const v = /\d/.test(vin[i]) ? Number(vin[i]) : TRANSLIT[vin[i]];
@@ -52,7 +56,6 @@ function findVinNodes(root) {
       if (SKIP_TAGS.has(parent.tagName)) return NodeFilter.FILTER_REJECT;
       if (parent.isContentEditable) return NodeFilter.FILTER_REJECT;
       if (parent.closest(`.${BADGE_CLASS}`)) return NodeFilter.FILTER_REJECT;
-      if (parent.hasAttribute(MARK_ATTR)) return NodeFilter.FILTER_REJECT;
       if (node.nodeValue.length < 17 || node.nodeValue.length > 5000) return NodeFilter.FILTER_REJECT;
       return NodeFilter.FILTER_ACCEPT;
     },
@@ -62,7 +65,7 @@ function findVinNodes(root) {
     const text = n.nodeValue.toUpperCase();
     VIN_RE.lastIndex = 0;
     for (const m of text.matchAll(VIN_RE)) {
-      if (looksLikeBrightDropVin(m[0])) hits.push({ node: n, vin: m[0] });
+      if (looksLikeBrightDropVin(m[0]) && !isDone(n, m[0])) hits.push({ node: n, vin: m[0] });
     }
   }
   return hits;
@@ -88,10 +91,6 @@ function vanIcon() {
 /** The largest pack GM fits; the module bar is drawn against this. */
 const MAX_MODULES = 20;
 
-/** Mirrors windowStickerUrl() in vin.js; the content script cannot import modules. */
-const stickerUrl = (vin) =>
-  `https://cws.gm.com/vs-cws/vehshop/v2/vehicle/windowsticker?vin=${vin}&make=chevrolet`;
-
 /** "Class 3: 10,001 - 14,000 lb (...)" -> "Class 3" */
 const gvwrClassShort = (s) => (s ? String(s).split(':')[0].trim() : null);
 
@@ -116,7 +115,7 @@ function present(r) {
     torque: m?.torqueLbFt ?? null,
     gvwr: r.local?.gvwr?.value ?? null,
     gvwrClass: gvwrClassShort(r.gvwrClass),
-    sticker: stickerUrl(r.vin),
+    sticker: r.stickerUrl ?? null,
   };
 }
 
@@ -130,13 +129,6 @@ const badgeData = new WeakMap();
 function badge(result) {
   const el = document.createElement('span');
   el.className = BADGE_CLASS;
-
-  if (!result || !result.ok) {
-    el.classList.add('bd-vin-badge--muted');
-    el.textContent = result?.error ? `VIN: ${result.error}` : 'VIN: lookup failed';
-    el.title = 'BrightDrop Spotter could not decode this VIN.';
-    return el;
-  }
 
   const bits = [];
   if (result.battery) bits.push(result.battery.name);
@@ -159,11 +151,13 @@ function badge(result) {
 /** Insert a badge directly after the text node that contained the VIN. */
 function annotate(node, result) {
   const parent = node.parentElement;
-  if (!parent || parent.hasAttribute(MARK_ATTR)) return;
-  parent.setAttribute(MARK_ATTR, '1');
+  if (!parent || isDone(node, result.vin)) return;
+  markDone(node, result.vin);
   const el = badge(result);
-  if (node.nextSibling) parent.insertBefore(el, node.nextSibling);
-  else parent.appendChild(el);
+  // Place after the text node and after any badge already added for an earlier VIN in it.
+  let after = node;
+  while (after.nextSibling instanceof Element && after.nextSibling.classList.contains(BADGE_CLASS)) after = after.nextSibling;
+  parent.insertBefore(el, after.nextSibling);
 }
 
 // ---------------------------------------------------------------------------
@@ -422,7 +416,7 @@ const card = (() => {
       sheetBtn.title = 'Window sticker details';
       if (current) place(current);   // the card grew; keep it on screen
     });
-    head.appendChild(sheetBtn);
+    if (p.sticker) head.appendChild(sheetBtn);
 
     // Listing page this van was bookmarked from, when it is not the page we are on.
     const link = el('a', 'ib page-link');
@@ -473,7 +467,7 @@ const card = (() => {
       try {
         const page = { url: pageHere(), title: (window.top === window ? document.title : '').trim() };
         const res = await chrome.runtime.sendMessage({ type: saved ? 'forget' : 'remember', vin: p.vin, page });
-        if (res?.ok) { setSaved(!saved); if (saved) showLink(null); }
+        if (res?.ok) { const wasSaved = saved; setSaved(!wasSaved); if (wasSaved) showLink(null); }
       } catch { /* extension reloaded; nothing to do */ }
     });
     // Reflect an existing entry once the answer arrives; the card is usable meanwhile.
@@ -539,6 +533,7 @@ const card = (() => {
       } catch { /* clipboard blocked on this page; nothing to do */ }
     });
     foot.appendChild(copy);
+    if (!p.sticker) { box.appendChild(foot); return; }
     const a = el('a', null, 'window sticker');
     a.href = p.sticker;
     a.target = '_blank';
@@ -650,8 +645,11 @@ window.addEventListener('resize', () => { if (card.isOpen()) card.close(); }, { 
 
 let running = false;
 
+let rerun = false;
+
 async function scan(root = document.body) {
-  if (running || !root) return;
+  if (!root) return;
+  if (running) { rerun = true; return; }   // picked up when the in-flight scan finishes
   running = true;
   try {
     const hits = findVinNodes(root);
@@ -663,13 +661,16 @@ async function scan(root = document.body) {
 
     for (const { node, vin } of hits) {
       const result = res.results[vin];
-      if (result?.skip) continue;   // a 2GC VIN vPIC says is another Chevrolet truck
-      if (node.isConnected) annotate(node, result);
+      if (!node.isConnected) continue;
+      if (result?.skip) { markDone(node, vin); continue; }   // confirmed not a BrightDrop: nothing to show
+      if (result?.ok) annotate(node, result);
+      // Anything else (network error, no record yet) is left unmarked so a later scan can retry.
     }
   } catch {
     // Extension reloaded under us; nothing to do.
   } finally {
     running = false;
+    if (rerun) { rerun = false; scan(root); }
   }
 }
 

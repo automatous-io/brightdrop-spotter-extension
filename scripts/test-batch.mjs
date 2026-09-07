@@ -15,7 +15,7 @@
 //
 
 import assert from 'node:assert/strict';
-import { decodeVinsBatch, extractVins, BATCH_LIMIT } from '../vin.js';
+import { decodeVinsBatch, extractVins, BATCH_LIMIT, isBrightDropVin } from '../vin.js';
 
 let pass = 0;
 const t = (name, fn) => { fn(); pass += 1; console.log(`  ok  ${name}`); };
@@ -99,7 +99,7 @@ await ta('malformed and non-BrightDrop VINs never reach the network', async () =
   calls = 0;
   const m = await decodeVinsBatch(['NOTAVIN', '1M8GDM9AXKP042788', '2G5ZJ3TY3S9100389'], { fetchImpl: fakeFetch });
   assert.equal(calls, 0, 'nothing valid to send, so no request');
-  assert.equal(m.get('1M8GDM9AXKP042788').error, 'not a BrightDrop');
+  assert.equal(m.get('1M8GDM9AXKP042788').skip, true);
   assert.equal(m.get('2G5ZJ3TY3S9100389').ok, false);
 });
 
@@ -130,12 +130,54 @@ await ta('range is chosen per model year and series', async () => {
   assert.equal(m.get('2GC8J2TZXT9100025').make, 'Chevrolet');
 });
 
-await ta('a 2GC VIN that is not a BrightDrop is skipped, not errored', async () => {
+await ta('sticker url is attached from 2024 on and withheld for 2023', async () => {
+  EXTRA['2G5ZJ3HG4P9101315'] = { ...ROW('2G5ZJ3HG4P9101315', 'AWD/All-Wheel Drive', 'XRJ', 'ETJ', 20, 'Class 2H'), Make: 'BRIGHTDROP', Model: 'Zevo', ModelYear: '2023', OtherEngineInfo: 'EAWD' };
+  const m = await decodeVinsBatch(['2G5ZJ3HG4P9101315', '2G5ZJ3TY3R9103964'], { fetchImpl: fakeFetch });
+  assert.equal(m.get('2G5ZJ3HG4P9101315').stickerUrl, null);
+  assert.match(m.get('2G5ZJ3TY3R9103964').stickerUrl, /windowsticker\?vin=2G5ZJ3TY3R9103964/);
+});
+
+await ta('a 2GC Silverado is rejected by its VIN pattern before any request', async () => {
+  calls = 0;
   const m = await decodeVinsBatch(['2GC4YPEYXR1234567'], { fetchImpl: fakeFetch });
   const r = m.get('2GC4YPEYXR1234567');
+  assert.equal(calls, 0);
   assert.equal(r.ok, false);
   assert.equal(r.skip, true);
-  assert.match(r.error, /Silverado/);
+});
+
+t('structural BrightDrop test: J at 5, model at 6, T or H at 7', () => {
+  assert.ok(isBrightDropVin('2G58J2TZ7S9102966'));
+  assert.ok(isBrightDropVin('2GC8J2TZXT9100025'));
+  assert.ok(isBrightDropVin('2G5ZJ3HG4P9101315'), '2023 coding');
+  assert.ok(!isBrightDropVin('2GC4YPEYXR1234567'), 'Silverado');
+  assert.ok(!isBrightDropVin('1M8GDM9AXKP042788'), 'other make');
+});
+
+await ta('a 2GC row vPIC names as another truck is skipped after the request', async () => {
+  // Pattern-passing VIN, but vPIC says Colorado: still caught, still silent.
+  EXTRA['2GC8J3TYXR9100001'] = { VIN: '2GC8J3TYXR9100001', Make: 'CHEVROLET', Model: 'Colorado', Series: 'ZR2', ModelYear: '2024', DriveType: '4WD', EngineModel: 'L3B', OtherEngineInfo: '', GVWR: 'Class 1', ErrorCode: '0' };
+  const m = await decodeVinsBatch(['2GC8J3TYXR9100001'], { fetchImpl: fakeFetch });
+  assert.equal(m.get('2GC8J3TYXR9100001').skip, true);
+  assert.match(m.get('2GC8J3TYXR9100001').error, /Colorado/);
+});
+
+await ta('a row with no make or model yet is a retryable failure, not a skip', async () => {
+  EXTRA['2GC8J3TY1R9100002'] = { VIN: '2GC8J3TY1R9100002', Make: '', Model: '', Series: '', ModelYear: '2024', DriveType: '', EngineModel: '', OtherEngineInfo: '', GVWR: '', ErrorCode: '8' };
+  const m = await decodeVinsBatch(['2GC8J3TY1R9100002'], { fetchImpl: fakeFetch });
+  const r = m.get('2GC8J3TY1R9100002');
+  assert.equal(r.ok, false);
+  assert.ok(!r.skip);
+  assert.match(r.error, /no record/);
+});
+
+await ta('a non-zero vPIC error code keeps the build data', async () => {
+  EXTRA['2G5ZJ3TY9R9100003'] = { ...ROW('2G5ZJ3TY9R9100003', 'AWD/All-Wheel Drive', 'XRJ', 'ETC', 12, 'Class 2H'), Make: 'BRIGHTDROP', Model: 'Zevo', ModelYear: '2024', ErrorCode: '14', ErrorText: '14 - Unused position(s)' };
+  const m = await decodeVinsBatch(['2G5ZJ3TY9R9100003'], { fetchImpl: fakeFetch });
+  const r = m.get('2G5ZJ3TY9R9100003');
+  assert.equal(r.ok, true);
+  assert.equal(r.batteryCode, 'ETC');
+  assert.match(r.errorText, /Unused/);
 });
 
 await ta('a VIN vPIC silently drops is reported, not lost', async () => {
