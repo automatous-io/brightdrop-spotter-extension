@@ -110,7 +110,7 @@ limitations under the License.
   /* Input */
   .field { position: relative; }
   input {
-    width: 100%; padding: 12px 64px 12px 14px;
+    width: 100%; padding: 12px 92px 12px 14px;
     font: 500 17px/1.2 var(--mono); letter-spacing: 0.1em; text-transform: uppercase;
     border: 1px solid var(--border-strong); border-radius: 10px;
     background: var(--surface); color: var(--text);
@@ -122,13 +122,22 @@ limitations under the License.
   .field[data-state="bad"] input:focus { box-shadow: 0 0 0 3px var(--bad-soft); }
   .field[data-state="ok"] input { border-color: var(--max-line); }
   .count {
-    position: absolute; right: 12px; top: 13px;
+    position: absolute; right: 42px; top: 13px;
     font: 500 11px/1.4 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums;
     display: inline-flex; align-items: center; gap: 5px; pointer-events: none;
   }
   .count svg { width: 14px; height: 14px; }
   .field[data-state="ok"] .count { color: var(--max); }
   .field[data-state="bad"] .count { color: var(--bad); }
+  .field[data-state="empty"] .count { right: 12px; }
+  .clear {
+    position: absolute; right: 9px; top: 9px; width: 28px; height: 28px; border-radius: 50%;
+    display: grid; place-items: center; color: var(--muted);
+  }
+  .clear:hover { background: var(--surface-2); color: var(--text); }
+  .clear:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .clear svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+  .field[data-state="empty"] .clear { display: none; }
   .slots { display: flex; gap: 2px; margin: 7px 4px 0; height: 3px; }
   .slots i { flex: 1; border-radius: 1px; background: var(--seg); opacity: 0.45; transition: background 120ms ease, opacity 120ms ease; }
   .slots i.on { opacity: 1; background: var(--accent); }
@@ -299,6 +308,9 @@ limitations under the License.
   <div class="field" id="field" data-state="empty">
     <input id="vin" maxlength="17" spellcheck="false" autocomplete="off" placeholder="Paste a 17-character VIN" aria-label="VIN" autofocus>
     <span class="count" id="count" aria-live="polite"></span>
+    <button type="button" class="clear" id="clear" aria-label="Clear VIN and go back" title="Clear (Esc)">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>
+    </button>
     <div class="slots" id="slots" aria-hidden="true"></div>
   </div>
 

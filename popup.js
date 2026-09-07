@@ -18,6 +18,7 @@ const input = document.getElementById('vin');
 const field = document.getElementById('field');
 const count = document.getElementById('count');
 const slots = document.getElementById('slots');
+const clearBtn = document.getElementById('clear');
 const out = document.getElementById('out');
 const about = document.getElementById('about');
 const infoBtn = document.getElementById('info');
@@ -273,4 +274,15 @@ infoBtn.addEventListener('click', () => {
 });
 
 input.addEventListener('input', () => { clearTimeout(run.t); run.t = setTimeout(run, 200); });
+
+// Back to the list without closing the popup: the × in the field, or Escape.
+function clearVin() {
+  if (!input.value) return;
+  clearTimeout(run.t);
+  input.value = '';
+  run();
+  input.focus();
+}
+clearBtn.addEventListener('click', clearVin);
+input.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); clearVin(); } });
 run();
