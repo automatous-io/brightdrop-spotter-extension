@@ -18,7 +18,7 @@
   },
   "type": "module",
   "scripts": {
-    "test": "node scripts/test-vin.mjs && node scripts/test-batch.mjs && node scripts/test-sticker.mjs",
+    "test": "node scripts/check-manifest.mjs && node scripts/test-vin.mjs && node scripts/test-batch.mjs && node scripts/test-sticker.mjs",
     "icons": "node scripts/build-icons.mjs"
   }
 }
