@@ -1,0 +1,67 @@
+/*
+ * Copyright 2026 AUTOMATOUS.IO
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* Injected into host pages: namespaced, !important where host CSS usually
+   clobbers. Max Range is green, Extended Range amber, Standard stays grey.
+   The hover card is styled in content.js. */
+.bd-vin-badge {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 5px;
+  margin: 0 0 0 6px !important;
+  padding: 2px 8px !important;
+  border-radius: 6px !important;
+  font: 600 11px/1.7 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif !important;
+  letter-spacing: 0.01em;
+  vertical-align: middle;
+  white-space: nowrap;
+  text-transform: none !important;
+  text-decoration: none !important;
+  background: #f2f4f7;
+  color: #5a6672;
+  border: 1px solid #e3e7ec;
+  cursor: default;
+  box-shadow: none !important;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.bd-vin-badge svg { width: 12px; height: 12px; fill: currentColor; flex: none; }
+.bd-vin-badge:hover,
+.bd-vin-badge[data-bd-open] { border-color: #cfd6de; }
+.bd-vin-badge:focus-visible { outline: 2px solid #0f6fd1 !important; outline-offset: 1px; }
+.bd-vin-badge--max {
+  background: #e6f5ef;
+  color: #07845f;
+  border-color: #b9e2d3;
+}
+.bd-vin-badge--max:hover,
+.bd-vin-badge--max[data-bd-open] { border-color: #7fcbb0; }
+.bd-vin-badge--ext {
+  background: #fdf1e2;
+  color: #b4640a;
+  border-color: #efd2a3;
+}
+.bd-vin-badge--ext:hover,
+.bd-vin-badge--ext[data-bd-open] { border-color: #e0b57a; }
+.bd-vin-badge--muted { background: transparent; color: #8b949e; border-color: #e3e7ec; font-weight: 500; cursor: help; }
+@media (prefers-color-scheme: dark) {
+  .bd-vin-badge { background: #1b222c; color: #8b949e; border-color: #252c36; }
+  .bd-vin-badge:hover, .bd-vin-badge[data-bd-open] { border-color: #38414d; }
+  .bd-vin-badge--max { background: #0e2620; color: #3fbf95; border-color: #1e4a3c; }
+  .bd-vin-badge--max:hover, .bd-vin-badge--max[data-bd-open] { border-color: #2c7a5f; }
+  .bd-vin-badge--ext { background: #2b2012; color: #e3a35a; border-color: #5a4020; }
+  .bd-vin-badge--ext:hover, .bd-vin-badge--ext[data-bd-open] { border-color: #8a6430; }
+  .bd-vin-badge--muted { background: transparent; color: #6e7681; border-color: #252c36; }
+}

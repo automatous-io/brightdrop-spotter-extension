@@ -1,0 +1,369 @@
+<!doctype html>
+<!--
+Copyright 2026 AUTOMATOUS.IO
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>BrightDrop Spotter</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f7f8fa; --surface: #ffffff; --surface-2: #f2f4f7;
+    --border: #e3e7ec; --border-strong: #cfd6de;
+    --text: #0d1419; --muted: #5a6672;
+    --accent: #0f6fd1; --accent-soft: #eaf3fc;
+    --max: #07845f; --max-soft: #e6f5ef; --max-line: #b9e2d3;
+    --bad: #c0362c; --bad-soft: #fbeceb;
+    --seg: #cfd6de;
+    --on-accent: #ffffff;
+    --amber: #b4640a; --amber-soft: #fdf1e2; --amber-line: #efd2a3;
+    --violet: #6b4fd8; --violet-soft: #efebfc;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Inter, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117; --surface: #151b23; --surface-2: #1b222c;
+      --border: #252c36; --border-strong: #38414d;
+      --text: #e6edf3; --muted: #8b949e;
+      --accent: #5ab0f5; --accent-soft: #12243a;
+      --max: #3fbf95; --max-soft: #0e2620; --max-line: #1e4a3c;
+      --bad: #f08a82; --bad-soft: #2a1614;
+      --seg: #38414d;
+      --on-accent: #0d1117;
+      --amber: #e3a35a; --amber-soft: #2b2012; --amber-line: #5a4020;
+      --violet: #a996f0; --violet-soft: #221c3a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; width: 340px; padding: 14px 14px 12px;
+    background: var(--bg); color: var(--text);
+    font: 13px/1.45 var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+
+  /* Header */
+  header { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; }
+  .mark {
+    width: 32px; height: 32px; border-radius: 9px; flex: none;
+    display: grid; place-items: center;
+    background: var(--accent-soft); color: var(--accent);
+  }
+  .mark svg { width: 19px; height: 19px; fill: currentColor; }
+  header h1 { font-size: 14px; font-weight: 650; letter-spacing: -0.01em; margin: 0; line-height: 1.2; }
+  header p { margin: 2px 0 0; font-size: 11px; color: var(--muted); line-height: 1.3; }
+  header > div { flex: 1; min-width: 0; }
+  .info {
+    width: 28px; height: 28px; border-radius: 50%; flex: none;
+    display: grid; place-items: center; color: var(--muted);
+    transition: background 120ms ease, color 120ms ease;
+  }
+  .info:hover { background: var(--surface-2); color: var(--text); }
+  .info:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .info[aria-expanded="true"] { background: var(--surface-2); color: var(--text); }
+  .info svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .info .x { display: none; }
+  .info[aria-expanded="true"] .i { display: none; }
+  .info[aria-expanded="true"] .x { display: block; }
+
+  /* About panel */
+  .about .card { margin-top: 0; }
+  .about .card + .card { margin-top: 8px; }
+  .about .sec { padding: 12px 14px 13px; }
+  .about .sec .label { display: block; margin-bottom: 6px; }
+  .about .vin {
+    display: flex; gap: 2px; margin: 8px 0 8px; font: 500 13px/1 var(--mono); letter-spacing: 0;
+  }
+  .about .vin span { flex: 1; text-align: center; padding: 6px 0; border-radius: 4px; background: var(--surface-2); color: var(--muted); }
+  .about .vin span.wmi { color: var(--text); }
+  .about .vin span.hi { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+  .about .vin span.max { background: var(--max-soft); color: var(--max); font-weight: 700; }
+  .about .vin span.chk { background: var(--amber-soft); color: var(--amber); font-weight: 700; }
+  .about .vin span.yr { background: var(--violet-soft); color: var(--violet); font-weight: 700; }
+  .about .key { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; font-size: 11px; color: var(--muted); }
+  .about .key code { font: 600 11px/1.5 var(--mono); color: var(--text); white-space: nowrap; }
+  .about .key code a { color: var(--accent); text-decoration: none; }
+  .about .key code a:hover { text-decoration: underline; }
+  .about .key .max { color: var(--max); }
+  .about .key .hi { color: var(--accent); }
+  .about .key .chk { color: var(--amber); }
+  .about .key .yr { color: var(--violet); }
+  .about .legend { display: grid; gap: 10px; }
+  .about .legend .badge { align-self: start; gap: 8px; padding-left: 8px; }
+  .about .legend .desc { display: block; margin-top: 4px; font-size: 11px; color: var(--muted); line-height: 1.45; }
+
+  /* Input */
+  .field { position: relative; }
+  input {
+    width: 100%; padding: 12px 64px 12px 14px;
+    font: 500 17px/1.2 var(--mono); letter-spacing: 0.1em; text-transform: uppercase;
+    border: 1px solid var(--border-strong); border-radius: 10px;
+    background: var(--surface); color: var(--text);
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+  }
+  input::placeholder { font: 400 13px/1.2 var(--sans); letter-spacing: 0; text-transform: none; color: var(--muted); opacity: 0.8; }
+  input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .field[data-state="bad"] input { border-color: var(--bad); }
+  .field[data-state="bad"] input:focus { box-shadow: 0 0 0 3px var(--bad-soft); }
+  .field[data-state="ok"] input { border-color: var(--max-line); }
+  .count {
+    position: absolute; right: 12px; top: 13px;
+    font: 500 11px/1.4 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums;
+    display: inline-flex; align-items: center; gap: 5px; pointer-events: none;
+  }
+  .count svg { width: 14px; height: 14px; }
+  .field[data-state="ok"] .count { color: var(--max); }
+  .field[data-state="bad"] .count { color: var(--bad); }
+  .slots { display: flex; gap: 2px; margin: 7px 4px 0; height: 3px; }
+  .slots i { flex: 1; border-radius: 1px; background: var(--seg); opacity: 0.45; transition: background 120ms ease, opacity 120ms ease; }
+  .slots i.on { opacity: 1; background: var(--accent); }
+  .field[data-state="ok"] .slots i.on { background: var(--max); }
+  .field[data-state="bad"] .slots i.on { background: var(--bad); }
+
+  /* Shared bits */
+  .label { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .card {
+    margin-top: 12px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; overflow: hidden;
+  }
+  .link { font-size: 11px; color: var(--muted); }
+  .link:hover { color: var(--accent); text-decoration: underline; }
+  .link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+  /* Empty state: show the badge people will meet on listing pages */
+  .intro { margin-top: 14px; text-align: center; }
+  .intro .label { display: block; margin: 0 2px 8px; }
+  .samples { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 9px; border-radius: 6px;
+    font: 600 11px/1.7 var(--sans);
+    background: var(--surface-2); color: var(--muted); border: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .badge svg { width: 12px; height: 12px; fill: currentColor; flex: none; }
+  .badge--max { background: var(--max-soft); color: var(--max); border-color: var(--max-line); }
+  .badge--ext { background: var(--amber-soft); color: var(--amber); border-color: var(--amber-line); }
+  .intro p { margin: 9px 2px 0; font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+  /* Recent lookups */
+  .recent { margin-top: 14px; }
+  .recent .rhead { display: flex; justify-content: space-between; align-items: baseline; margin: 0 2px 6px; }
+  .recent ul { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .recent li + li { border-top: 1px solid var(--border); }
+  .recent .row {
+    display: grid; grid-template-columns: 8px 1fr auto; align-items: center; gap: 10px;
+    width: 100%; padding: 9px 12px; text-align: left;
+  }
+  .recent .row:hover { background: var(--surface-2); }
+  .recent .row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .recent .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--seg); }
+  .recent .dot--max { background: var(--max); }
+  .recent .dot--ext { background: var(--amber); }
+  .recent code { font: 500 12px/1.2 var(--mono); letter-spacing: 0.04em; color: var(--text); }
+  .recent .sub { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .recent .pack { font-size: 11px; font-weight: 600; color: var(--muted); text-align: right; }
+  .recent .pack--max { color: var(--max); }
+  .recent .pack--ext { color: var(--amber); }
+
+  /* Result */
+  .head { display: flex; align-items: center; gap: 8px; padding: 13px 14px 11px; }
+  .head > div { flex: 1; min-width: 0; }
+  .head svg { width: 22px; height: 22px; fill: var(--accent); flex: none; }
+  .head .eyebrow { font-size: 11px; color: var(--muted); letter-spacing: 0.02em; }
+  .head .title { font-size: 16px; font-weight: 650; letter-spacing: -0.015em; line-height: 1.2; white-space: nowrap; }
+  .pill {
+    margin-left: auto; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+    padding: 4px 7px; border-radius: 6px; background: var(--surface-2); color: var(--muted);
+    border: 1px solid var(--border); white-space: nowrap;
+  }
+  .pill--max { background: var(--max-soft); color: var(--max); border-color: var(--max-line); }
+  .pill--ext { background: var(--amber-soft); color: var(--amber); border-color: var(--amber-line); }
+
+  .hero { margin: 0 10px; padding: 12px 13px 13px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); }
+  .hero.is-max { background: var(--max-soft); border-color: var(--max-line); }
+  .hero.is-ext { background: var(--amber-soft); border-color: var(--amber-line); }
+  .hero .row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .hero .name { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; margin-top: 2px; }
+  .hero.is-max .name { color: var(--max); }
+  .hero.is-ext .name { color: var(--amber); }
+  .hero .range { text-align: right; white-space: nowrap; }
+  .hero .range b { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .hero.is-max .range b { color: var(--max); }
+  .hero.is-ext .range b { color: var(--amber); }
+  .hero .range small { display: block; font-size: 10px; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
+  .bar { display: flex; gap: 2px; margin-top: 10px; height: 7px; }
+  .bar i { flex: 1; border-radius: 2px; background: var(--seg); opacity: 0.45; }
+  .bar i.on { opacity: 1; background: var(--muted); }
+  .hero.is-max .bar i.on { background: var(--max); }
+  .hero.is-ext .bar i.on { background: var(--amber); }
+  .hero .meta { display: flex; justify-content: space-between; gap: 10px; margin-top: 7px; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .hero .meta code { font-family: var(--mono); font-size: 11px; }
+  .hero .note { margin-top: 8px; font-size: 11px; color: var(--muted); line-height: 1.4; }
+  .hero.is-max .note { color: var(--max); }
+  .hero.is-ext .note { color: var(--amber); }
+
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 10px 10px 0; }
+  .stat { padding: 9px 10px; border-radius: 9px; border: 1px solid var(--border); }
+  .stat b { display: block; font-size: 15px; font-weight: 650; margin-top: 2px; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+  .stat span { display: block; font-size: 11px; color: var(--muted); }
+
+  /* Window sticker details */
+  .sheet { margin: 10px 10px 0; border: 1px solid var(--border); border-radius: 9px; overflow: hidden; }
+  .head .ib {
+    width: 28px; height: 28px; flex: none; margin-left: 2px; margin-right: -6px;
+    display: grid; place-items: center; border-radius: 7px; color: var(--muted);
+  }
+  .head .ib:hover { background: var(--surface-2); color: var(--accent); }
+  .head .ib:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .head .ib:disabled { color: var(--border-strong); cursor: progress; }
+  .head .ib.on { color: var(--accent); }
+  .head .ib svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .sheet .rows { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; padding: 10px 12px 11px; font-size: 12px; line-height: 1.45; }
+  .sheet .rows .k { font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding-top: 2px; white-space: nowrap; }
+  .sheet .rows .v.on { color: var(--max); font-weight: 600; }
+  .sheet .rows .v.off { color: var(--muted); }
+  .sheet .rows .v b { font-weight: 650; font-variant-numeric: tabular-nums; }
+  .sheet .rows .v small { color: var(--muted); }
+  .sheet .err { padding: 9px 12px 11px; font-size: 12px; color: var(--muted); }
+  .source { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 11px 14px 12px; font-size: 11px; color: var(--muted); }
+  .source .sticker {
+    display: inline-flex; align-items: center; gap: 4px;
+    color: var(--accent); text-decoration: none; font-size: 12px; font-weight: 600; white-space: nowrap;
+  }
+  .source .sticker:hover { text-decoration: underline; }
+  .source .sticker:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+  .source .sticker svg { width: 11px; height: 11px; fill: none; stroke: currentColor; stroke-width: 2; }
+  .source code { font-family: var(--mono); letter-spacing: 0.05em; }
+  .source .copy { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--muted); }
+  .source .copy:hover { color: var(--accent); }
+  .source .copy:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+  .source .copy svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; }
+  .source .copy.done { color: var(--max); }
+
+  /* Error */
+  .error { margin-top: 12px; padding: 11px 13px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--bad); font-size: 12px; line-height: 1.5; }
+  .error b { display: block; color: var(--bad); font-weight: 650; margin-bottom: 2px; }
+
+  /* Loading skeleton */
+  .skeleton .sk { border-radius: 6px; background: linear-gradient(90deg, var(--surface-2) 25%, var(--border) 50%, var(--surface-2) 75%); background-size: 200% 100%; animation: shimmer 1.2s linear infinite; }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+  .skeleton .head .sk { height: 14px; }
+  .skeleton .hero { min-height: 92px; }
+  .skeleton .stat { min-height: 56px; }
+
+  /* Brand */
+  .brand {
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    margin: 14px 2px 0; padding-top: 10px; border-top: 1px solid var(--border);
+    font-size: 11px; color: var(--muted);
+  }
+  .brand a { color: var(--muted); text-decoration: none; }
+  .brand a:hover { color: var(--text); text-decoration: underline; }
+  .brand a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+  .brand .by b { color: var(--text); font-weight: 600; }
+  .brand .meta { display: inline-flex; align-items: center; gap: 6px; }
+  .brand .meta a + a::before { content: "·"; margin-right: 6px; color: var(--muted); }
+  .brand #version { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.02em; }
+  .brand #version:empty { display: none; }
+</style>
+</head>
+<body>
+  <header>
+    <div class="mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3,7C1.89,7 1,7.89 1,9V17H3A3,3 0 0,0 6,20A3,3 0 0,0 9,17H15A3,3 0 0,0 18,20A3,3 0 0,0 21,17H23V13C23,11.89 22.11,11 21,11L18,7H3M15,8.5H17.5L19.46,11H15V8.5M6,15.5A1.5,1.5 0 0,1 7.5,17A1.5,1.5 0 0,1 6,18.5A1.5,1.5 0 0,1 4.5,17A1.5,1.5 0 0,1 6,15.5M18,15.5A1.5,1.5 0 0,1 19.5,17A1.5,1.5 0 0,1 18,18.5A1.5,1.5 0 0,1 16.5,17A1.5,1.5 0 0,1 18,15.5Z"/></svg></div>
+    <div>
+      <h1>BrightDrop Spotter</h1>
+      <p>Spot the good ones. Verified by VIN.</p>
+    </div>
+    <button type="button" class="info" id="info" aria-expanded="false" aria-controls="about" aria-label="About BrightDrop Spotter">
+      <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+      <svg class="x" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>
+    </button>
+  </header>
+
+  <div class="field" id="field" data-state="empty">
+    <input id="vin" maxlength="17" spellcheck="false" autocomplete="off" placeholder="Paste a 17-character VIN" aria-label="VIN" autofocus>
+    <span class="count" id="count" aria-live="polite"></span>
+    <div class="slots" id="slots" aria-hidden="true"></div>
+  </div>
+
+  <div id="out"></div>
+
+  <section class="about" id="about" hidden>
+    <div class="card">
+      <div class="sec">
+        <span class="label">What the badges mean</span>
+        <div class="legend">
+          <div><span class="badge badge--max" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3,7C1.89,7 1,7.89 1,9V17H3A3,3 0 0,0 6,20A3,3 0 0,0 9,17H15A3,3 0 0,0 18,20A3,3 0 0,0 21,17H23V13C23,11.89 22.11,11 21,11L18,7H3M15,8.5H17.5L19.46,11H15V8.5M6,15.5A1.5,1.5 0 0,1 7.5,17A1.5,1.5 0 0,1 6,18.5A1.5,1.5 0 0,1 4.5,17A1.5,1.5 0 0,1 6,15.5M18,15.5A1.5,1.5 0 0,1 19.5,17A1.5,1.5 0 0,1 18,18.5A1.5,1.5 0 0,1 16.5,17A1.5,1.5 0 0,1 18,15.5Z"/></svg>Max Range · AWD · Zevo 600</span><span class="desc">Green is the largest pack. Up to 285 mi.</span></div>
+          <div><span class="badge" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3,7C1.89,7 1,7.89 1,9V17H3A3,3 0 0,0 6,20A3,3 0 0,0 9,17H15A3,3 0 0,0 18,20A3,3 0 0,0 21,17H23V13C23,11.89 22.11,11 21,11L18,7H3M15,8.5H17.5L19.46,11H15V8.5M6,15.5A1.5,1.5 0 0,1 7.5,17A1.5,1.5 0 0,1 6,18.5A1.5,1.5 0 0,1 4.5,17A1.5,1.5 0 0,1 6,15.5M18,15.5A1.5,1.5 0 0,1 19.5,17A1.5,1.5 0 0,1 18,18.5A1.5,1.5 0 0,1 16.5,17A1.5,1.5 0 0,1 18,15.5Z"/></svg>Standard Range · FWD · BrightDrop 400</span><span class="desc">Grey is the base pack. 159 to 179 mi by year.</span></div>
+          <div><span class="badge badge--ext" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3,7C1.89,7 1,7.89 1,9V17H3A3,3 0 0,0 6,20A3,3 0 0,0 9,17H15A3,3 0 0,0 18,20A3,3 0 0,0 21,17H23V13C23,11.89 22.11,11 21,11L18,7H3M15,8.5H17.5L19.46,11H15V8.5M6,15.5A1.5,1.5 0 0,1 7.5,17A1.5,1.5 0 0,1 6,18.5A1.5,1.5 0 0,1 4.5,17A1.5,1.5 0 0,1 6,15.5M18,15.5A1.5,1.5 0 0,1 19.5,17A1.5,1.5 0 0,1 18,18.5A1.5,1.5 0 0,1 16.5,17A1.5,1.5 0 0,1 18,15.5Z"/></svg>Extended Range · FWD · BrightDrop 600</span><span class="desc">Amber is the middle pack. 2026 only, up to 204 mi.</span></div>
+        </div>
+        <div class="key" style="margin-top:10px">
+          <code>Hover</code><span>Hover any badge for range, power, weight and the sticker sheet.</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="sec">
+        <span class="label">How a BrightDrop VIN is read</span>
+        <div class="vin" aria-label="Example VIN with model and powertrain positions highlighted">
+          <span class="wmi">2</span><span class="wmi">G</span><span class="wmi">5</span><span>Z</span><span>J</span><span class="hi">3</span><span>T</span><span class="max">Z</span><span class="chk">3</span><span class="yr">S</span><span>9</span><span>1</span><span>0</span><span>0</span><span>3</span><span>8</span><span>8</span>
+        </div>
+        <div class="key">
+          <code>2G5</code><span>BrightDrop through 2025. From 2026 it is <b>2GC</b>, Chevrolet's truck code. All built at CAMI in Ingersoll, Ontario.</span>
+          <code class="hi">Pos 6</code><span>Model. <b>2</b> is a Zevo 400, <b>3</b> is a Zevo 600.</span>
+          <code class="max">Pos 8</code><span>Powertrain. <b>6</b> FWD Standard, <b>Y</b> AWD Standard, <b>Z</b> AWD Max Range.</span>
+          <code class="chk">Pos 9</code><span>Check digit. Anything that fails it is never treated as a VIN.</span>
+          <code class="yr">Pos 10</code><span>Model year. <b>S</b> is 2025.</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="sec">
+        <span class="label">Where the data comes from</span>
+        <div class="key">
+          <code><a href="https://vpic.nhtsa.dot.gov/" target="_blank" rel="noopener noreferrer">NHTSA</a></code><span>The U.S. build record GM files for every van. Supplies series, drive, motor and battery codes.</span>
+          <code class="max">ETJ</code><span>GM's Max Range battery code. 20 modules, 173 kWh.</span>
+          <code>EWU</code><span>Extended Range, new for 2026. 121 kWh.</span>
+          <code>ETC</code><span>GM's Standard Range battery code. 12 modules, 102 kWh.</span>
+          <code>VIN</code><span>The positions above are an offline cross-check. If they disagree, NHTSA wins.</span>
+          <code>Sticker</code><span>GM's original build sheet for that exact van. On request, the card reads it for outlets, charger, price, color and first dealer.</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="sec">
+        <span class="label">Privacy and fine print</span>
+        <div class="key">
+          <code>Sent</code><span>VINs go to NHTSA. A VIN goes to GM only when you request its sticker.</span>
+          <code>Stored</code><span>Results cached on this device for 30 days.</span>
+          <code>Tracked</code><span>Nothing. No analytics, accounts or telemetry.</span>
+          <code>Range</code><span>GM-estimated for the van's year and drive. Real range varies.</span>
+          <code>Affiliation</code><span>None. Independent of GM and BrightDrop. Verify against the window sticker.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="brand">
+    <span class="by">Made by <a href="https://github.com/automatous-io" target="_blank" rel="noopener noreferrer"><b>automatous.io</b></a></span>
+    <span class="meta"><a id="version" href="https://github.com/automatous-io/brightdrop-spotter-extension/releases" target="_blank" rel="noopener noreferrer"></a><a href="https://github.com/automatous-io/brightdrop-spotter-extension" target="_blank" rel="noopener noreferrer">Source on GitHub</a></span>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

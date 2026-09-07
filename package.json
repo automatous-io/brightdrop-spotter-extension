@@ -1,0 +1,24 @@
+{
+  "name": "brightdrop-spotter",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Browser extension that shows which BrightDrop vans have the Max Range battery while you browse listings",
+  "license": "Apache-2.0",
+  "author": {
+    "name": "Automatous",
+    "url": "https://github.com/automatous-io"
+  },
+  "homepage": "https://github.com/automatous-io/brightdrop-spotter-extension",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/automatous-io/brightdrop-spotter-extension.git"
+  },
+  "bugs": {
+    "url": "https://github.com/automatous-io/brightdrop-spotter-extension/issues"
+  },
+  "type": "module",
+  "scripts": {
+    "test": "node scripts/test-vin.mjs && node scripts/test-batch.mjs && node scripts/test-sticker.mjs",
+    "icons": "node scripts/build-icons.mjs"
+  }
+}

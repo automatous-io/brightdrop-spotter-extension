@@ -1,0 +1,55 @@
+{
+  "manifest_version": 3,
+  "name": "BrightDrop Spotter",
+  "version": "1.0.0",
+  "description": "Spots which BrightDrop vans have the Max Range battery as you browse listings. Decodes VINs via NHTSA data. Not affiliated with GM.",
+  "homepage_url": "https://github.com/automatous-io/brightdrop-spotter-extension",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://vpic.nhtsa.dot.gov/*",
+    "https://cws.gm.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "BrightDrop Spotter",
+    "default_icon": {
+      "16": "icons/16.png",
+      "32": "icons/32.png",
+      "48": "icons/48.png",
+      "128": "icons/128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/16.png",
+    "32": "icons/32.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "exclude_matches": [
+        "https://vpic.nhtsa.dot.gov/*",
+        "https://*.google.com/*",
+        "https://*.facebook.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ]
+}
