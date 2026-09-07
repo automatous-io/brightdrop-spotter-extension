@@ -1,0 +1,49 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Manifest and referenced files
+        run: node scripts/check-manifest.mjs
+      - name: Decoder, batch and sticker tests
+        run: npm test
+      - name: Tag matches manifest version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          ver=$(node -p "require('./manifest.json').version")
+          test "$tag" = "$ver" || { echo "tag v$tag but manifest says $ver"; exit 1; }
+
+  release:
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - name: Zip the extension
+        run: |
+          ver="${GITHUB_REF_NAME#v}"
+          zip -r "brightdrop-spotter-$ver.zip" \
+            manifest.json background.js content.js content.css popup.html popup.js \
+            vin.js sticker.js icons LICENSE NOTICE
+          unzip -l "brightdrop-spotter-$ver.zip"
+      - name: Draft the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ver="${GITHUB_REF_NAME#v}"
+          gh release create "$GITHUB_REF_NAME" "brightdrop-spotter-$ver.zip" \
+            --draft --title "$ver" --notes ""
