@@ -25,7 +25,7 @@ const CACHE_KEY = 'vinCache';
 const CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 30;   // vehicle build data never changes
 
 const RECENT_KEY = 'recentLookups';
-const RECENT_MAX = 5;
+const RECENT_MAX = 20;
 
 const STICKER_KEY = 'stickerCache';
 const STICKER_TTL_MS = CACHE_TTL_MS;   // a build sheet never changes either
