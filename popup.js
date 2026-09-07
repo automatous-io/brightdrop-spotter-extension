@@ -33,6 +33,7 @@ const CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="c
 const CROSS = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M7 7l10 10M17 7L7 17"/></svg>';
 const ARROW = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>';
 const DOC = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M10 13h6M10 17h6"/></svg>';
+const LINK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7L11.5 6.8"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.5-1.5"/></svg>';
 const COPY = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>';
 
 const gvwrClassShort = (s) => (s ? String(s).split(':')[0].trim() : null);
@@ -102,6 +103,7 @@ function resultHtml(p) {
       <div>${p.eyebrow ? `<div class="eyebrow">${esc(p.eyebrow)}</div>` : ''}<div class="title">${esc(p.title)}</div></div>
       ${p.pillText ? `<span class="pill${p.isMax ? ' pill--max' : p.isExt ? ' pill--ext' : ''}">${esc(p.pillText)}</span>` : ''}
       <button type="button" class="ib" data-sticker="${esc(p.vin)}" title="Window sticker details" aria-label="Show window sticker details: options, price, color and first dealer" aria-expanded="false">${DOC}</button>
+      <a class="ib page-link" hidden target="_blank" rel="noopener noreferrer">${LINK}</a>
     </div>
     <div class="hero${p.isMax ? ' is-max' : p.isExt ? ' is-ext' : ''}">
       <div class="row">
@@ -160,11 +162,16 @@ function recentHtml(recent) {
   const rows = recent.map((r) => {
     const tone = r.pack === 'Max Range' ? 'max' : r.pack === 'Extended Range' ? 'ext' : null;
     const sub = [r.series, r.drive].filter(Boolean).join(' · ');
+    let host = '';
+    try { if (r.url) host = new URL(r.url).hostname.replace(/^www\./, ''); } catch { /* no link */ }
+    const open = r.url
+      ? `<a class="open" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer" title="Open saved listing on ${esc(host)}" aria-label="Open saved listing on ${esc(host)}">${LINK}</a>`
+      : '';
     return `<li><button type="button" class="row" data-vin="${esc(r.vin)}">
       <span class="dot${tone ? ` dot--${tone}` : ''}"></span>
       <span><code>${esc(r.vin)}</code>${sub ? `<span class="sub">${esc(sub)}</span>` : ''}</span>
       <span class="pack${tone ? ` pack--${tone}` : ''}">${esc(r.pack ?? '—')}</span>
-    </button></li>`;
+    </button>${open}</li>`;
   }).join('');
   return `<section class="recent">
     <div class="rhead"><span class="label">Recent</span><button type="button" class="link" id="clear-recent">Clear</button></div>
@@ -222,6 +229,19 @@ async function run() {
 
   setState('ok');
   out.innerHTML = resultHtml(present(r, res.stickerUrl, res.ranges));
+
+  // If this van was bookmarked from a listing, offer that page.
+  send({ type: 'isRecent', vin }).then((rec) => {
+    if (mine !== seq || !rec?.ok || !rec.url) return;
+    const a = out.querySelector('.page-link');
+    if (!a) return;
+    let host = '';
+    try { host = new URL(rec.url).hostname.replace(/^www\./, ''); } catch { /* leave blank */ }
+    a.href = rec.url;
+    a.title = rec.title ? `Open saved listing: ${rec.title}` : `Open saved listing on ${host}`;
+    a.setAttribute('aria-label', a.title);
+    a.hidden = false;
+  });
 }
 
 out.addEventListener('click', async (e) => {

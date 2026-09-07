@@ -186,19 +186,27 @@ limitations under the License.
   .recent .dot--ext { background: var(--amber); }
   .recent code { font: 500 12px/1.2 var(--mono); letter-spacing: 0.04em; color: var(--text); }
   .recent .sub { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .recent li { display: grid; grid-template-columns: 1fr auto; align-items: stretch; }
+  .recent .open {
+    display: grid; place-items: center; width: 36px; color: var(--muted); border-left: 1px solid var(--border);
+    text-decoration: none;
+  }
+  .recent .open:hover { background: var(--surface-2); color: var(--accent); }
+  .recent .open:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .recent .open svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .recent .pack { font-size: 11px; font-weight: 600; color: var(--muted); text-align: right; }
   .recent .pack--max { color: var(--max); }
   .recent .pack--ext { color: var(--amber); }
 
   /* Result */
   .head { display: flex; align-items: center; gap: 8px; padding: 13px 14px 11px; }
-  .head > div { flex: 1; min-width: 0; }
+  .head > div { flex: 1; min-width: 0; overflow: hidden; }
   .head svg { width: 22px; height: 22px; fill: var(--accent); flex: none; }
   .head .eyebrow { font-size: 11px; color: var(--muted); letter-spacing: 0.02em; }
-  .head .title { font-size: 16px; font-weight: 650; letter-spacing: -0.015em; line-height: 1.2; white-space: nowrap; }
+  .head .title { font-size: 15px; font-weight: 650; letter-spacing: -0.02em; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .pill {
-    margin-left: auto; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
-    padding: 4px 7px; border-radius: 6px; background: var(--surface-2); color: var(--muted);
+    margin-left: auto; font-size: 9.5px; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase;
+    padding: 4px 6px; border-radius: 6px; background: var(--surface-2); color: var(--muted);
     border: 1px solid var(--border); white-space: nowrap;
   }
   .pill--max { background: var(--max-soft); color: var(--max); border-color: var(--max-line); }
@@ -235,14 +243,16 @@ limitations under the License.
   /* Window sticker details */
   .sheet { margin: 10px 10px 0; border: 1px solid var(--border); border-radius: 9px; overflow: hidden; }
   .head .ib {
-    width: 28px; height: 28px; flex: none; margin-left: 2px; margin-right: -6px;
+    width: 24px; height: 24px; flex: none; margin-left: -1px;
     display: grid; place-items: center; border-radius: 7px; color: var(--muted);
   }
+  .head .ib:last-child { margin-right: -6px; }
   .head .ib:hover { background: var(--surface-2); color: var(--accent); }
   .head .ib:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
   .head .ib:disabled { color: var(--border-strong); cursor: progress; }
   .head .ib.on { color: var(--accent); }
-  .head .ib svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .head a.ib { text-decoration: none; }
+  .head .ib svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
   .sheet .rows { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; padding: 10px 12px 11px; font-size: 12px; line-height: 1.45; }
   .sheet .rows .k { font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding-top: 2px; white-space: nowrap; }
   .sheet .rows .v.on { color: var(--max); font-weight: 600; }

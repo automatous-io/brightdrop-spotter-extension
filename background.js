@@ -61,14 +61,18 @@ async function sticker(vin) {
 }
 
 /** Remember a VIN the user looked up by hand, newest first, deduplicated. */
-async function rememberLookup(vin, data) {
+async function rememberLookup(vin, data, page = null) {
   const { [RECENT_KEY]: recent = [] } = await chrome.storage.local.get(RECENT_KEY);
+  const prior = recent.find((r) => r.vin === vin);
   const entry = {
     vin,
     at: Date.now(),
     pack: data.battery?.name ?? null,
     series: data.name ?? data.series ?? null,
     drive: data.driveType ?? data.motor?.drivetrain ?? null,
+    // The listing page a bookmark was made from. A popup lookup keeps whatever was saved before.
+    url: page?.url ?? prior?.url ?? null,
+    title: page?.title ?? prior?.title ?? null,
   };
   const next = [entry, ...recent.filter((r) => r.vin !== vin)].slice(0, RECENT_MAX);
   await chrome.storage.local.set({ [RECENT_KEY]: next });
@@ -142,7 +146,8 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       .then(async (map) => {
         const data = map.get(vin);
         if (!data?.ok) { sendResponse({ ok: false, error: 'No decoded record to save.' }); return; }
-        await rememberLookup(vin, data);
+        const page = msg.page && /^https?:/i.test(msg.page.url ?? '') ? { url: String(msg.page.url).slice(0, 2000), title: String(msg.page.title ?? '').slice(0, 200) } : null;
+        await rememberLookup(vin, data, page);
         sendResponse({ ok: true });
       })
       .catch((err) => sendResponse({ ok: false, error: err.message }));
@@ -158,7 +163,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   if (msg?.type === 'isRecent') {
     chrome.storage.local.get(RECENT_KEY)
-      .then(({ [RECENT_KEY]: recent = [] }) => sendResponse({ ok: true, saved: recent.some((r) => r.vin === msg.vin) }))
+      .then(({ [RECENT_KEY]: recent = [] }) => {
+        const hit = recent.find((r) => r.vin === msg.vin);
+        sendResponse({ ok: true, saved: Boolean(hit), url: hit?.url ?? null, title: hit?.title ?? null });
+      })
       .catch((err) => sendResponse({ ok: false, error: err.message }));
     return true;
   }

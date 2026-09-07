@@ -213,20 +213,15 @@ const CARD_CSS = `
   .card.is-above.is-open { transform: none; }
 
   .head { display: flex; align-items: center; gap: 10px; padding: 12px 14px 10px; }
+  .head > div { flex: 1; min-width: 0; }
   .head svg { width: 20px; height: 20px; fill: var(--accent); flex: none; }
   .head .eyebrow { font-size: 11px; color: var(--muted); letter-spacing: 0.02em; }
-  .head .title { font-size: 15px; font-weight: 650; letter-spacing: -0.01em; line-height: 1.2; }
-  .head .drive {
-    margin-left: auto; font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
-    padding: 2px 8px; border-radius: 5px; background: var(--surface); color: var(--muted);
-    border: 1px solid var(--border);
-  }
+  .head .title { font-size: 15px; font-weight: 650; letter-spacing: -0.01em; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .head .ib {
     width: 26px; height: 26px; flex: none;
     display: grid; place-items: center; border-radius: 6px;
     background: none; border: 0; padding: 0; color: var(--muted); cursor: pointer;
   }
-  .head .drive + .ib { margin-left: 2px; }
   .head .ib:last-child { margin-right: -6px; }
   .head .ib:hover { background: var(--surface); color: var(--accent); }
   .head .ib:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
@@ -236,6 +231,8 @@ const CARD_CSS = `
   .head .save.done:hover { color: var(--accent); }
   .head .save.done svg { fill: currentColor; }
   .head .sheet-btn.on { color: var(--accent); }
+  .head a.ib { text-decoration: none; }
+  .head a.ib[hidden] { display: none; }
 
   .hero {
     margin: 0 10px; padding: 11px 12px 12px;
@@ -385,8 +382,6 @@ const card = (() => {
     if (p.eyebrow) ident.appendChild(el('div', 'eyebrow', p.eyebrow));
     ident.appendChild(el('div', 'title', p.title));
     head.appendChild(ident);
-    if (p.drive) head.appendChild(el('span', 'drive', p.drive));
-
     // Window sticker details: fetched from GM only when asked, for this one van.
     const sheet = el('div', 'sheet');
     sheet.hidden = true;
@@ -429,6 +424,33 @@ const card = (() => {
     });
     head.appendChild(sheetBtn);
 
+    // Listing page this van was bookmarked from, when it is not the page we are on.
+    const link = el('a', 'ib page-link');
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.hidden = true;
+    const linkIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    linkIcon.setAttribute('viewBox', '0 0 24 24');
+    linkIcon.setAttribute('aria-hidden', 'true');
+    for (const d of ['M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7L11.5 6.8', 'M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.5-1.5']) {
+      const seg = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      seg.setAttribute('d', d);
+      linkIcon.appendChild(seg);
+    }
+    link.appendChild(linkIcon);
+    const pageHere = () => (window.top === window ? location.href : (document.referrer || location.href));
+    const showLink = (url, title) => {
+      const ok = Boolean(url) && url !== pageHere();
+      link.hidden = !ok;
+      if (!ok) return;
+      link.href = url;
+      let host = '';
+      try { host = new URL(url).hostname.replace(/^www\./, ''); } catch { /* leave blank */ }
+      link.title = title ? `Open saved listing: ${title}` : `Open saved listing on ${host}`;
+      link.setAttribute('aria-label', link.title);
+    };
+    head.appendChild(link);
+
     const save = el('button', 'ib save');
     save.type = 'button';
     const saveIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -449,13 +471,14 @@ const card = (() => {
     setSaved(false);
     save.addEventListener('click', async () => {
       try {
-        const res = await chrome.runtime.sendMessage({ type: saved ? 'forget' : 'remember', vin: p.vin });
-        if (res?.ok) setSaved(!saved);
+        const page = { url: pageHere(), title: (window.top === window ? document.title : '').trim() };
+        const res = await chrome.runtime.sendMessage({ type: saved ? 'forget' : 'remember', vin: p.vin, page });
+        if (res?.ok) { setSaved(!saved); if (saved) showLink(null); }
       } catch { /* extension reloaded; nothing to do */ }
     });
     // Reflect an existing entry once the answer arrives; the card is usable meanwhile.
     chrome.runtime.sendMessage({ type: 'isRecent', vin: p.vin })
-      .then((res) => { if (res?.ok && res.saved) setSaved(true); })
+      .then((res) => { if (res?.ok && res.saved) { setSaved(true); showLink(res.url, res.title); } })
       .catch(() => {});
     head.appendChild(save);
     box.appendChild(head);

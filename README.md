@@ -42,9 +42,11 @@ can't filter on it. The answer is in the VIN, filed with NHTSA by GM. This reads
 - **Window sticker details on request.** One click reads GM's original build sheet for that van:
   7.2 kW offboard power outlets or their absence, onboard charger size, spare, speed governor,
   sticker price, colours and the dealer it was sold through.
-- **A bookmark** on each card that saves the van to the popup's Recent list, and removes it again.
+- **A bookmark** on each card that saves the van to the popup's Recent list, along with the listing
+  page it was found on. Click again to remove it. A link icon on the card, in the popup and in the
+  Recent list opens that listing, so a van seen on one dealer site is a click away from another.
 - **A popup** for checking a VIN by hand, laid out the same way as the card, with your recent and
-  saved vans one click away.
+  saved vans one click away. The × in the field, or Escape, takes you back to the list.
 
 | Popup | Sticker details | Recent |
 |---|---|---|
@@ -68,6 +70,8 @@ explains how the VIN is read and where every number comes from.
 
 - VINs found on a page are sent to NHTSA's public vPIC database. No other service sees them.
 - One VIN goes to GM's window sticker service only when you click for that van's sticker details.
+- Bookmarking a van stores the address and title of the page you were on, so the popup can take
+  you back to the listing. That stays on your device with the rest of the saved list.
 - Results are cached on your device for 30 days. There are no accounts, no analytics and no
   telemetry.
 
