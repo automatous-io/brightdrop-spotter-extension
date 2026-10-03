@@ -1,0 +1,155 @@
+<!doctype html>
+<!--
+Copyright 2026 AUTOMATOUS.IO
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https://vpic.nhtsa.dot.gov https://cws.gm.com; manifest-src 'self'; base-uri 'none'; form-action 'none'">
+<title>BrightDrop Spotter: check a BrightDrop's battery by VIN</title>
+<meta name="description" content="Paste the VIN of a BrightDrop 400 or 600 van to see which battery it has, how far it goes, and its original window sticker. Free, no sign-up.">
+<link rel="canonical" href="https://automatous-io.github.io/brightdrop-spotter-extension/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="BrightDrop Spotter">
+<meta property="og:title" content="Don't guess the battery. Check the VIN.">
+<meta property="og:description" content="Standard and Max Range BrightDrops look the same and sit about 100 miles apart. Paste a VIN to see which one it is. Free, no sign-up.">
+<meta property="og:url" content="https://automatous-io.github.io/brightdrop-spotter-extension/">
+<meta property="og:image" content="https://automatous-io.github.io/brightdrop-spotter-extension/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="BrightDrop Spotter result card showing a Max Range battery with about 272 miles of estimated range">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#f7f8fa" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-title" content="BD Spotter">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="app.css">
+<script type="module" src="app.js"></script>
+</head>
+<body>
+  <header class="wrap top">
+    <a class="home" href="./" aria-label="BrightDrop Spotter home">
+      <span class="mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3,7C1.89,7 1,7.89 1,9V17H3A3,3 0 0,0 6,20A3,3 0 0,0 9,17H15A3,3 0 0,0 18,20A3,3 0 0,0 21,17H23V13C23,11.89 22.11,11 21,11L18,7H3M15,8.5H17.5L19.46,11H15V8.5M6,15.5A1.5,1.5 0 0,1 7.5,17A1.5,1.5 0 0,1 6,18.5A1.5,1.5 0 0,1 4.5,17A1.5,1.5 0 0,1 6,15.5M18,15.5A1.5,1.5 0 0,1 19.5,17A1.5,1.5 0 0,1 18,18.5A1.5,1.5 0 0,1 16.5,17A1.5,1.5 0 0,1 18,15.5Z"/></svg></span>
+      <span class="name">BrightDrop Spotter</span>
+    </a>
+    <nav aria-label="Site">
+      <a href="#extension">Extension</a>
+      <a href="https://github.com/automatous-io/brightdrop-spotter-extension" target="_blank" rel="noopener noreferrer">GitHub</a>
+    </nav>
+  </header>
+
+  <main class="wrap">
+    <section class="lead">
+      <h1>Don't guess the battery. <em>Check the VIN.</em></h1>
+      <p class="sub">Standard and Max Range BrightDrops look the same and sit about 100 miles apart. Paste a VIN to see which one it is, plus the original window sticker.</p>
+
+      <form class="finder" id="finder" data-state="empty" novalidate>
+        <div class="line">
+          <div class="field">
+            <input id="vin" maxlength="40" spellcheck="false" autocomplete="off" autocapitalize="characters" autocorrect="off" enterkeyhint="go" placeholder="Paste a 17-character VIN" aria-label="VIN" aria-describedby="hint">
+            <span class="count" id="count" aria-live="polite"></span>
+            <button type="button" class="clear" id="clear" aria-label="Clear VIN" title="Clear (Esc)">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>
+            </button>
+            <div class="slots" id="slots" aria-hidden="true"></div>
+          </div>
+          <button type="submit" class="btn go">Check it</button>
+        </div>
+        <p class="hint" id="hint">No VIN yet? <button type="button" class="link" id="example">Try an example</button></p>
+      </form>
+    </section>
+
+    <div id="out" aria-live="polite"></div>
+    <div id="recent"></div>
+
+    <section class="learn" aria-labelledby="learn-h">
+      <h2 id="learn-h">Good to know</h2>
+      <div class="grid">
+        <div class="card">
+          <div class="sec">
+            <span class="label">The three batteries</span>
+            <div class="legend">
+              <div><span class="badge badge--max"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3,7C1.89,7 1,7.89 1,9V17H3A3,3 0 0,0 6,20A3,3 0 0,0 9,17H15A3,3 0 0,0 18,20A3,3 0 0,0 21,17H23V13C23,11.89 22.11,11 21,11L18,7H3M15,8.5H17.5L19.46,11H15V8.5M6,15.5A1.5,1.5 0 0,1 7.5,17A1.5,1.5 0 0,1 6,18.5A1.5,1.5 0 0,1 4.5,17A1.5,1.5 0 0,1 6,15.5M18,15.5A1.5,1.5 0 0,1 19.5,17A1.5,1.5 0 0,1 18,18.5A1.5,1.5 0 0,1 16.5,17A1.5,1.5 0 0,1 18,15.5Z"/></svg>Max Range</span><span class="desc">Green is the biggest battery. 173 kWh, up to 285 miles. All-wheel drive only.</span></div>
+              <div><span class="badge badge--ext"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3,7C1.89,7 1,7.89 1,9V17H3A3,3 0 0,0 6,20A3,3 0 0,0 9,17H15A3,3 0 0,0 18,20A3,3 0 0,0 21,17H23V13C23,11.89 22.11,11 21,11L18,7H3M15,8.5H17.5L19.46,11H15V8.5M6,15.5A1.5,1.5 0 0,1 7.5,17A1.5,1.5 0 0,1 6,18.5A1.5,1.5 0 0,1 4.5,17A1.5,1.5 0 0,1 6,15.5M18,15.5A1.5,1.5 0 0,1 19.5,17A1.5,1.5 0 0,1 18,18.5A1.5,1.5 0 0,1 16.5,17A1.5,1.5 0 0,1 18,15.5Z"/></svg>Extended Range</span><span class="desc">Amber is the middle one. 121 kWh, up to 204 miles. New for 2026.</span></div>
+              <div><span class="badge"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3,7C1.89,7 1,7.89 1,9V17H3A3,3 0 0,0 6,20A3,3 0 0,0 9,17H15A3,3 0 0,0 18,20A3,3 0 0,0 21,17H23V13C23,11.89 22.11,11 21,11L18,7H3M15,8.5H17.5L19.46,11H15V8.5M6,15.5A1.5,1.5 0 0,1 7.5,17A1.5,1.5 0 0,1 6,18.5A1.5,1.5 0 0,1 4.5,17A1.5,1.5 0 0,1 6,15.5M18,15.5A1.5,1.5 0 0,1 19.5,17A1.5,1.5 0 0,1 18,18.5A1.5,1.5 0 0,1 16.5,17A1.5,1.5 0 0,1 18,15.5Z"/></svg>Standard Range</span><span class="desc">Grey is the smallest. 102 kWh, 159 to 179 miles depending on the year.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="sec">
+            <span class="label">Where the VIN says it</span>
+            <div class="vin" aria-label="Example VIN with the size, battery and year characters highlighted">
+              <span class="wmi">2</span><span class="wmi">G</span><span class="wmi">5</span><span>Z</span><span>J</span><span class="hi">3</span><span>T</span><span class="max">Z</span><span>3</span><span class="yr">S</span><span>9</span><span>1</span><span>0</span><span>0</span><span>3</span><span>8</span><span>8</span>
+            </div>
+            <div class="key">
+              <code class="hi">6th</code><span>Size. <b>2</b> is a 400, <b>3</b> is the longer 600.</span>
+              <code class="max">8th</code><span>Battery and drive. <b>Z</b> is Max Range with all-wheel drive. <b>Y</b> is Standard with all-wheel drive. <b>6</b> is Standard with front-wheel drive.</span>
+              <code class="yr">10th</code><span>Model year. <b>R</b> is 2024, <b>S</b> is 2025, <b>T</b> is 2026.</span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="sec">
+            <span class="label">Where the answers come from</span>
+            <div class="key">
+              <code>Battery</code><span>From <a href="https://vpic.nhtsa.dot.gov/" target="_blank" rel="noopener noreferrer">NHTSA</a>, the U.S. government's vehicle database, where GM files how every van was built.</span>
+              <code>Range</code><span>GM's estimate for that battery, model year and drive. Real range changes with load, speed and weather.</span>
+              <code>Sticker</code><span>Straight from GM. It is the original window sticker for that exact van, and it is only fetched when you ask for it.</span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="sec">
+            <span class="label">Privacy</span>
+            <div class="key">
+              <code>Shared</code><span>The VIN goes to the government database to look it up, and to GM only if you ask for the sticker.</span>
+              <code>Saved</code><span>Your recent lookups are kept in this browser and nowhere else.</span>
+              <code>Tracked</code><span>Nothing. No accounts, no ads, no analytics.</span>
+              <code>Official?</code><span>No. This is an independent project, not connected to GM or BrightDrop. Double-check anything important against the window sticker.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="ext" id="extension" aria-labelledby="ext-h">
+      <div class="card">
+        <div class="copy">
+          <h2 id="ext-h">Shopping on a computer?</h2>
+          <p>The Chrome extension does this for you as you browse. It tags every BrightDrop on dealer and listing sites with its battery, so there is nothing to paste.</p>
+          <div class="actions">
+            <a class="btn" href="https://github.com/automatous-io/brightdrop-spotter-extension/releases/latest" target="_blank" rel="noopener noreferrer">Get the extension</a>
+            <a class="btn btn--quiet" href="https://github.com/automatous-io/brightdrop-spotter-extension#install" target="_blank" rel="noopener noreferrer">How to install</a>
+          </div>
+        </div>
+        <div class="shot"><img src="hero.png" width="1800" height="1800" loading="lazy" alt="A dealer inventory page with a green Max Range badge beside a BrightDrop VIN and the detail card open"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap foot">
+    <div class="links">
+      <span class="by">Made by <a href="https://github.com/automatous-io" target="_blank" rel="noopener noreferrer"><b>automatous.io</b></a></span>
+      <a href="https://github.com/automatous-io/brightdrop-spotter-extension" target="_blank" rel="noopener noreferrer">Source on GitHub</a>
+      <a href="https://github.com/automatous-io/brightdrop-spotter-extension/discussions" target="_blank" rel="noopener noreferrer">Report a wrong result</a>
+      <a href="https://buymeacoffee.com/automatous.io" target="_blank" rel="noopener noreferrer">Buy me a coffee</a>
+    </div>
+    <p class="fine">Not affiliated with General Motors or BrightDrop. Range figures are GM's estimates. Double-check anything that matters against the window sticker and a pre-purchase inspection.</p>
+  </footer>
+</body>
+</html>
