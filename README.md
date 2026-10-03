@@ -25,6 +25,8 @@ limitations under the License.
 
 Spot the good ones. Verified by VIN.
 
+**Check a VIN on the website, no install required: [automatous-io.github.io/brightdrop-spotter-extension](https://automatous-io.github.io/brightdrop-spotter-extension/)**
+
 A Chrome extension for anyone shopping for a BrightDrop 400 or 600 electric van. It badges every
 BrightDrop VIN on the page you're reading with the battery pack, drive and model, and on hover shows
 the full build: range, power, weight rating, and on request the window sticker's options and price.
@@ -115,6 +117,7 @@ background.js     service worker: the only file that touches the network
 content.js        content script: badges and the hover card
 content.css       badge styles
 popup.html/js     the toolbar popup
+web/              the website, which shares vin.js and sticker.js with the extension
 scripts/          tests and the icon builder
 docs/             screenshots and store assets
 ```
