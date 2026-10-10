@@ -108,6 +108,7 @@ const REAL = [
   ['2G5ZJ3TY3S9100388', 'AWD · Standard Range', '9,990 lb',  'BrightDrop 600'],
   ['2G5ZJ3T60S9104168', 'FWD · Standard Range', '9,990 lb',  'BrightDrop 600'],
   ['2G58J2TZ7S9102966', 'AWD · Max Range',      '11,000 lb', 'BrightDrop 400'],
+  ['2GCZJ3T7XT9100132', 'AWD · Extended Range', '9,990 lb',  'BrightDrop 600'],
 ];
 
 t('all four real VINs pass check-digit validation', () => {
@@ -131,6 +132,10 @@ t('the battery IS derivable from position 8', () => {
   assert.match(std.powertrain.value, /Standard Range/);
   assert.equal(max.powertrain.code, 'Z');
   assert.equal(std.powertrain.code, 'Y');
+  // 2026 adds a third pack on its own code.
+  const ext = decodeVin('2GCZJ3T7XT9100132').positional;
+  assert.match(ext.powertrain.value, /Extended Range/);
+  assert.equal(ext.powertrain.code, '7');
 });
 
 t('search pattern skips position 4 so it spans both GVWR classes', () => {
@@ -209,6 +214,17 @@ t('knows the 2026 Extended Range pack', () => {
   assert.equal(p.modules, 14);
 });
 
+// Verbatim from 2GCZJ3T7XT9100132. This row writes the module count with a space, not a hyphen.
+t('parses a real Extended Range row', () => {
+  const p = parsePowertrain('XRJ+EWU', 'EAWD, 2-MOTOR SYSTEM, 14 MOD', { modelYear: 2026, series: '600', driveType: 'AWD' });
+  assert.equal(p.batteryCode, 'EWU');
+  assert.equal(p.battery.name, 'Extended Range');
+  assert.equal(p.battery.kWh, 121);
+  assert.equal(p.battery.rangeMi, 204);
+  assert.equal(p.motor.drivetrain, 'AWD');
+  assert.equal(p.modules, 14);
+});
+
 t('range follows the model year, and series or drive where GM split it', () => {
   assert.equal(estimatedRange('ETC', { modelYear: 2024, series: '400' }), 159);
   assert.equal(estimatedRange('ETC', { modelYear: 2024, series: '600' }), 164);
@@ -256,6 +272,18 @@ t('accepts the 2026 2GC manufacturer code', () => {
   assert.match(d.positional.powertrain.value, /Max Range/);
 });
 
+// Real 2026 van, confirmed by vPIC and its GM window sticker (XRJ + EWU, 14-MOD BATTERY PACK).
+t('decodes the 2026 Extended Range code at position 8', () => {
+  const d = decodeVin('2GCZJ3T7XT9100132');
+  assert.ok(d.ok);
+  assert.equal(d.structural.modelYear, 2026);
+  assert.equal(d.positional.model.value, 'BrightDrop 600');
+  assert.equal(d.positional.gvwr.value, '9,990 lb');
+  assert.equal(d.positional.powertrain.code, '7');
+  assert.equal(d.positional.powertrain.value, 'AWD · Extended Range');
+  assert.equal(searchPattern({ model: '600', powertrain: '7' }), 'J3T7');
+});
+
 t('unknown powertrain codes degrade to null, never a guess', () => {
   const p = parsePowertrain('ZZZ + QQQ', 'something unparseable');
   assert.equal(p.motor, null);
@@ -298,6 +326,24 @@ await (async () => {
   });
   t('drift is reported when vPIC disagrees on battery', () => {
     assert.ok(wrongBattery.drift.some((d) => /says ETC, vPIC says ETJ/.test(d)), wrongBattery.drift.join('; '));
+  });
+
+  // Verbatim vPIC row for the confirmed Extended Range van.
+  const ewuRow = {
+    ...vpicRow, ModelYear: '2026', EngineModel: 'XRJ+EWU', OtherEngineInfo: 'EAWD, 2-MOTOR SYSTEM, 14 MOD',
+  };
+  const ext = await lookupVin('2GCZJ3T7XT9100132', [], { fetchImpl: fakeFetch(ewuRow) });
+  t('no drift on an Extended Range van', () => {
+    assert.equal(ext.vpic.batteryCode, 'EWU');
+    assert.equal(ext.vpic.modules, 14);
+    assert.deepEqual(ext.drift, []);
+  });
+
+  const extWrong = await lookupVin('2GCZJ3T7XT9100132', [], {
+    fetchImpl: fakeFetch({ ...ewuRow, EngineModel: 'XRJ+ETC', OtherEngineInfo: 'EAWD, 2-MOTOR SYSTEM, 12-MOD' }),
+  });
+  t('drift is reported when vPIC disagrees with an Extended Range decode', () => {
+    assert.ok(extWrong.drift.some((d) => /says EWU, vPIC says ETC/.test(d)), extWrong.drift.join('; '));
   });
 
   const wrongSeries = await lookupVin('2G5ZJ3TY3S9100388', [], {

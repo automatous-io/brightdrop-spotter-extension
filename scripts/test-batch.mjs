@@ -37,10 +37,12 @@ const LIVE = {
   '2G58J2TZ7S9102966': { ...ROW('2G58J2TZ7S9102966', 'AWD/All-Wheel Drive', 'XRJ', 'ETJ', 20, 'Class 3: 10,001 - 14,000 lb'), Series: '400' },
 };
 
-// Real rows outside the 2025 set: a 2024 Zevo, a 2026 2GC BrightDrop, and a 2GC Silverado.
+// Real rows outside the 2025 set: a 2024 Zevo, two 2026 2GC BrightDrops (Max Range and
+// Extended Range), and a 2GC Silverado.
 const EXTRA = {
   '2G5ZJ3TY3R9103964': { ...ROW('2G5ZJ3TY3R9103964', 'AWD/All-Wheel Drive', 'XRJ', 'ETC', 12, 'Class 2H: 9,001 - 10,000 lb'), Make: 'BRIGHTDROP', Model: 'Zevo', ModelYear: '2024' },
   '2GC8J2TZXT9100025': { VIN: '2GC8J2TZXT9100025', Make: 'CHEVROLET', Model: 'BrightDrop', Series: '400', ModelYear: '2026', DriveType: 'AWD/All-Wheel Drive', EngineModel: 'XRJ+ETJ', OtherEngineInfo: 'EAWD, 2-MOTOR SYSTEM, 20-MOD', GVWR: 'Class 3: 10,001 - 14,000 lb', ErrorCode: '0' },
+  '2GCZJ3T7XT9100132': { VIN: '2GCZJ3T7XT9100132', Make: 'CHEVROLET', Model: 'BrightDrop', Series: '600', ModelYear: '2026', DriveType: 'AWD/All-Wheel Drive', EngineModel: 'XRJ+EWU', OtherEngineInfo: 'EAWD, 2-MOTOR SYSTEM, 14 MOD', GVWR: 'Class 2H: 9,001 - 10,000 lb (4,082 - 4,536 kg)', ErrorCode: '0' },
   '2GC4YPEYXR1234567': { VIN: '2GC4YPEYXR1234567', Make: 'CHEVROLET', Model: 'Silverado', Series: '2500 HD', ModelYear: '2024', DriveType: '4WD/4-Wheel Drive', EngineModel: 'L8T', OtherEngineInfo: '', GVWR: 'Class 2H', ErrorCode: '0' },
 };
 
@@ -86,13 +88,18 @@ await ta('decodes all four confirmed VINs in one request', async () => {
 });
 
 await ta('offline powertrain decode agrees with vPIC on drivetrain and battery', async () => {
-  const m = await decodeVinsBatch(Object.keys(LIVE), { fetchImpl: fakeFetch });
+  // The 2025 set plus the confirmed 2024 and 2026 vans, so all three packs are covered.
+  const vins = [...Object.keys(LIVE), '2G5ZJ3TY3R9103964', '2GC8J2TZXT9100025', '2GCZJ3T7XT9100132'];
+  const m = await decodeVinsBatch(vins, { fetchImpl: fakeFetch });
+  assert.equal(m.size, vins.length);
   for (const [vin, r] of m) {
     const local = r.local.powertrain.value;   // e.g. "AWD · Max Range"
     assert.ok(local.startsWith(r.driveType), `${vin}: ${local} vs ${r.driveType}`);
-    const localBattery = local.includes('Max Range') ? 'ETJ' : 'ETC';
+    const localBattery = local.includes('Max Range') ? 'ETJ' : local.includes('Extended Range') ? 'EWU' : 'ETC';
     assert.equal(localBattery, r.batteryCode, `${vin} battery must agree`);
   }
+  assert.equal(m.get('2GCZJ3T7XT9100132').batteryCode, 'EWU');
+  assert.equal(m.get('2GCZJ3T7XT9100132').modules, 14);
 });
 
 await ta('malformed and non-BrightDrop VINs never reach the network', async () => {

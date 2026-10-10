@@ -112,6 +112,7 @@ export const VDS_POSITIONS = {
     values: {
       '6': { value: 'FWD · Standard Range', samples: 2, detail: 'XRM + ETC, 1 motor, 240 hp, 12 modules' },
       'Y': { value: 'AWD · Standard Range', samples: 5, detail: 'XRJ + ETC, 2 motors, 300 hp, 12 modules' },
+      '7': { value: 'AWD · Extended Range', samples: 1, detail: '2026 on. XRJ + EWU, 2 motors, 300 hp, 14 modules' },
       'Z': { value: 'AWD · Max Range', samples: 3, detail: 'XRJ + ETJ, 2 motors, 300 hp, 20 modules' },
       'G': { value: 'AWD · Max Range', samples: 3, detail: '2023 coding (position 7 is H that year). XRJ + ETJ, 2 motors, 300 hp' },
       // No FWD Max Range code exists: GM offers ETJ with AWD only (2025 and 2026 order guides).
@@ -255,10 +256,10 @@ export function decodeVin(raw, patterns = []) {
 const VPIC = 'https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues';
 
 // Usable kWh from GM's 2025 and 2026 order guides. Module counts as vPIC
-// reports them; EWU's is not published, so vPIC supplies it.
+// reports them; EWU's 14 is also printed on the window sticker.
 export const BATTERY_RPO = {
   ETC: { name: 'Standard Range', modules: 12, kWh: 102.4 },
-  EWU: { name: 'Extended Range', modules: null, kWh: 121 },
+  EWU: { name: 'Extended Range', modules: 14, kWh: 121 },
   ETJ: { name: 'Max Range', modules: 20, kWh: 173.3 },
 };
 
@@ -349,7 +350,7 @@ export async function lookupVin(raw, patterns = [], { fetchImpl = fetch } = {}) 
     if (localDrive && vpic.driveType && !vpic.driveType.toUpperCase().startsWith(localDrive)) {
       drift.push(`positional decode says ${localDrive}, vPIC says ${vpic.driveType}`);
     }
-    const localBattery = localPower?.includes('Max Range') ? 'ETJ' : localPower ? 'ETC' : null;
+    const localBattery = localPower?.includes('Max Range') ? 'ETJ' : localPower?.includes('Extended Range') ? 'EWU' : localPower ? 'ETC' : null;
     if (localBattery && vpic.batteryCode && localBattery !== vpic.batteryCode) {
       drift.push(`positional decode says ${localBattery}, vPIC says ${vpic.batteryCode}`);
     }

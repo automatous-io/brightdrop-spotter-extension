@@ -103,7 +103,7 @@ Stickers are fetched one at a time and only when asked.
 | 1-3 | Manufacturer | `2G5` through 2025, `2GC` from 2026 (shared with Chevrolet trucks; NHTSA confirms the model) |
 | 4 | GVWR | `8` = 11,000 lb, `Z` = 9,990 lb |
 | 6 | Model | `2` = 400, `3` = 600 |
-| 8 | Powertrain | `6` FWD Standard, `Y` AWD Standard, `Z` AWD Max Range |
+| 8 | Powertrain | `6` FWD Standard, `Y` AWD Standard, `7` AWD Extended Range, `Z` AWD Max Range |
 | 9 | Check digit | rejects anything that isn't a VIN |
 | 10 | Model year | `R` 2024, `S` 2025, `T` 2026 |
 
